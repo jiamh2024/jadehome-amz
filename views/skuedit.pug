@@ -1,0 +1,265 @@
+//- views/skuEdit.pug
+doctype html
+html(lang="en")
+  head
+    meta(charset="UTF-8")
+    meta(name="viewport" content="width=device-width, initial-scale=1.0")
+    title Edit Product SKU
+    link(href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet")
+    link(rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css")
+    style.
+      .form-container {
+        max-width: 800px;
+        margin: 2rem auto;
+        padding: 2rem;
+        box-shadow: 0 0 15px rgba(0,0,0,0.1);
+        border-radius: 8px;
+      }
+      .required-field:after {
+        content: " *";
+        color: #dc3545;
+      }
+      .dimension-inputs {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 15px;
+      }
+      #loadingOverlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(255,255,255,0.8);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+      }
+
+  body
+    #loadingOverlay
+      .spinner-border.text-primary(role="status")
+        span.visually-hidden Loading...
+
+    .form-container
+      h2.mb-4 
+        i.bi.bi-pencil-square
+        |  Edit Product SKU
+      
+      #alertContainer
+
+      form#skuForm
+        input(type="hidden" name="sku_id")
+        
+        .mb-3
+          label.form-label.required-field(for="sku_code") SKU Code
+          input#sku_code.form-control(
+            type="text"
+            name="sku_code"
+            required
+            pattern="[A-Za-z0-9-]+"
+            title="Alphanumeric characters and hyphens only"
+          )
+          .invalid-feedback Please provide a valid SKU code.
+
+        .mb-3
+          label.form-label.required-field(for="product_name") Product Name
+          input#product_name.form-control(
+            type="text"
+            name="product_name"
+            required
+          )
+          .invalid-feedback Product name is required.
+
+        .mb-3
+          label.form-label.required-field Dimensions (cm)
+          .dimension-inputs
+            .form-group
+              label.small(for="length") Length
+              input#length.form-control(
+                type="number"
+                name="length"
+                step="0.01"
+                min="0.01"
+                required
+              )
+            .form-group
+              label.small(for="width") Width
+              input#width.form-control(
+                type="number"
+                name="width"
+                step="0.01"
+                min="0.01"
+                required
+              )
+            .form-group
+              label.small(for="height") Height
+              input#height.form-control(
+                type="number"
+                name="height"
+                step="0.01"
+                min="0.01"
+                required
+              )
+
+        .row.mb-3
+          .col-md-6
+            label.form-label.required-field(for="weight") Weight (kg)
+            input#weight.form-control(
+              type="number"
+              name="weight"
+              step="0.001"
+              min="0.001"
+              required
+            )
+          .col-md-6
+            label.form-label.required-field(for="purchase_cost") Purchase Cost
+            .input-group
+              input#purchase_cost.form-control(
+                type="number"
+                name="purchase_cost"
+                step="0.01"
+                min="0.01"
+                required
+              )
+              select#currency.form-select(name="currency" style="max-width: 100px")
+                option(value="USD") USD
+                option(value="EUR") EUR
+                option(value="GBP") GBP
+                option(value="CNY") CNY
+                option(value="JPY") JPY
+
+        .row.mb-4
+          .col-md-6
+            label.form-label(for="has_battery") Contains Battery?
+            .form-check
+              input#has_battery.form-check-input(
+                type="checkbox"
+                name="has_battery"
+              )
+              label.form-check-label(for="has_battery") Yes
+          .col-md-6#batteryTypeContainer(style="display: none")
+            label.form-label(for="battery_type") Battery Type
+            select#battery_type.form-select(name="battery_type")
+              option(value="None") No Battery
+              option(value="Lithium") Lithium
+              option(value="Lead-acid") Lead-acid
+
+        .d-grid.gap-2
+          button.btn.btn-primary(type="submit") 
+            i.bi.bi-save
+            |  Save Changes
+          a.btn.btn-outline-secondary(href="/api/skus") 
+            i.bi.bi-arrow-left
+            |  Back to List
+
+    script(src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js")
+    script(src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js")
+    script.
+      // Load existing SKU data
+      document.addEventListener('DOMContentLoaded', async () => {
+        try {
+          const skuId = #{id};
+          const response = await axios.get(`/api/sku/${skuId}`);
+          const sku = response.data.data;
+          
+          // Populate form fields
+          document.getElementById('sku_code').value = sku.sku_code;
+          document.getElementById('product_name').value = sku.product_name;
+          document.getElementById('length').value = sku.length;
+          document.getElementById('width').value = sku.width;
+          document.getElementById('height').value = sku.height;
+          document.getElementById('weight').value = sku.weight;
+          document.getElementById('purchase_cost').value = sku.purchase_cost;
+          document.getElementById('currency').value = sku.currency;
+          
+          // Handle battery fields
+          const hasBattery = sku.has_battery === 1 || sku.has_battery === true;
+          document.getElementById('has_battery').checked = hasBattery;
+          document.getElementById('batteryTypeContainer').style.display = hasBattery ? 'block' : 'none';
+          document.getElementById('battery_type').value = sku.battery_type || 'None';
+          
+          // Hide loading overlay
+          document.getElementById('loadingOverlay').style.display = 'none';
+        } catch (error) {
+          console.error('Error loading SKU:', error);
+          showAlert('danger', 'Failed to load SKU data');
+          document.getElementById('loadingOverlay').style.display = 'none';
+        }
+      });
+
+      // Toggle battery type visibility
+      document.getElementById('has_battery').addEventListener('change', function() {
+        const container = document.getElementById('batteryTypeContainer');
+        container.style.display = this.checked ? 'block' : 'none';
+        if (!this.checked) {
+          document.getElementById('battery_type').value = 'None';
+        }
+      });
+
+      // Form submission
+      document.getElementById('skuForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const form = e.target;
+        
+        // Front-end validation
+        if (!form.checkValidity()) {
+          form.classList.add('was-validated');
+          return;
+        }
+
+        const formData = {
+          sku_code: form.sku_code.value,
+          product_name: form.product_name.value,
+          length: parseFloat(form.length.value),
+          width: parseFloat(form.width.value),
+          height: parseFloat(form.height.value),
+          weight: parseFloat(form.weight.value),
+          has_battery: form.has_battery.checked,
+          battery_type: form.battery_type.value,
+          purchase_cost: parseFloat(form.purchase_cost.value),
+          currency: form.currency.value
+        };
+
+        try {
+          const response = await axios.put('/api/sku/#{id}', formData);
+          
+          showAlert('success', `
+            <strong>Success!</strong> SKU updated successfully.
+            <a href="/api/sku/${form.sku_id.value}" class="alert-link">View details</a>
+          `);
+          
+          // Scroll to top to see the message
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        } catch (error) {
+          let errorMsg = 'Failed to update SKU';
+          if (error.response) {
+            if (error.response.data.errors) {
+              errorMsg = error.response.data.errors.map(e => e.msg).join('<br>');
+            } else if (error.response.data.message) {
+              errorMsg = error.response.data.message;
+            }
+          }
+          
+          showAlert('danger', `<strong>Error!</strong> ${errorMsg}`);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+      });
+
+      function showAlert(type, message) {
+        const alertContainer = document.getElementById('alertContainer');
+        const alert = document.createElement('div');
+        alert.className = `alert alert-${type} alert-dismissible fade show`;
+        alert.innerHTML = `
+          ${message}
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        alertContainer.prepend(alert);
+        
+        // Auto-dismiss after 5 seconds
+        setTimeout(() => {
+          alert.classList.remove('show');
+          setTimeout(() => alert.remove(), 150);
+        }, 5000);
+      }

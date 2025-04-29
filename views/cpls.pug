@@ -1,0 +1,213 @@
+//- views/competitors.pug
+doctype html
+html(lang="zh-CN")
+  head
+    title 竞品信息查询
+    meta(charset="UTF-8")
+    meta(name="viewport" content="width=device-width, initial-scale=1.0")
+    link(href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet")
+    link(href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" rel="stylesheet")
+    link(href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet")
+    style.
+      .container-main {
+        max-width: 1200px;
+        margin: 2rem auto;
+        padding: 2rem;
+      }
+      .table-actions {
+        white-space: nowrap;
+      }
+      .header-section {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+      }
+      .loading-spinner {
+        display: none;
+        width: 3rem;
+        height: 3rem;
+      }
+      .battery-icon {
+        color: #28a745;
+      }
+
+  body
+    .container.container-main
+      .header-section
+        h1 
+          i.bi.bi-clipboard-data
+          span.ms-2 竞品信息查询
+        a.btn.btn-primary(href="/cpadd") 
+          i.bi.bi-plus-circle
+          span.ms-2 新增竞品
+
+      .card
+        .card-body
+          .d-flex.justify-content-center.mb-4
+            .spinner-border.loading-spinner.text-primary(role="status")
+              span.visually-hidden 加载中...
+
+          table#competitorsTable.table.table-striped.table-hover(style="display: none")
+            thead
+              tr
+                th 产品规格
+                th 品牌
+                th 国家
+                th 价格
+                th 尺寸(L×W×H)
+                th 重量
+                th 带电
+                th 操作
+            tbody
+
+      #deleteModal.modal.fade(tabindex="-1")
+        .modal-dialog
+          .modal-content
+            .modal-header
+              h5.modal-title 确认删除
+              button.btn-close(type="button" data-bs-dismiss="modal" aria-label="关闭")
+            .modal-body
+              p 确定要删除这条竞品记录吗？
+              p#competitorToDelete.text-danger.fw-bold
+            .modal-footer
+              button.btn.btn-secondary(type="button" data-bs-dismiss="modal") 取消
+              button#confirmDelete.btn.btn-danger(type="button") 确认删除
+
+    script(src="https://code.jquery.com/jquery-3.7.0.min.js")
+    script(src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js")
+    script(src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js")
+    script(src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js")
+    script.
+      $(document).ready(function() {
+        // 初始化DataTable
+        const table = $('#competitorsTable').DataTable({
+          responsive: true,
+          language: {
+            url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/zh.json'
+          },
+          columns: [
+            { data: 'product_name' },
+            { data: 'brand' },
+            { data: 'country_code' },
+            { 
+              data: 'sale_price',
+              render: function(data) {
+                return '¥' + parseFloat(data).toFixed(2);
+              }
+            },
+            {
+              data: null,
+              render: function(data) {
+                const dimensions = [];
+                if (data.length) dimensions.push(data.length + 'cm');
+                if (data.width) dimensions.push(data.width + 'mm');
+                if (data.height) dimensions.push(data.height + 'cm');
+                return dimensions.join(' × ') || '-';
+              }
+            },
+            {
+              data: 'weight',
+              render: function(data) {
+                return data ? data + 'kg' : '-';
+              }
+            },
+            {
+              data: 'has_battery',
+              render: function(data) {
+                return data ? '<i class="bi bi-battery-full battery-icon"></i>' : '-';
+              }
+            },
+            {
+              data: null,
+              orderable: false,
+              render: function(data) {
+                return `
+                  <div class="table-actions">
+                    <a href="/cp/${data.id}" class="btn btn-sm btn-info me-1" title="查看详情">
+                      <i class="bi bi-eye"></i>
+                    </a>
+                    <button class="btn btn-sm btn-danger delete-btn" data-id="${data.id}" data-name="${data.product_name}" title="删除">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </div>
+                `;
+              }
+            }
+          ]
+        });
+
+        // 显示加载动画
+        $('.loading-spinner').show();
+
+        // 从API加载数据
+        fetch('/api/cp')
+          .then(response => response.json())
+          .then(data => {
+            table.clear().rows.add(data).draw();
+            $('#competitorsTable').show();
+          })
+          .catch(error => {
+            console.error('加载数据失败:', error);
+            showAlert('danger', '错误', '加载竞品数据失败，请刷新重试');
+          })
+          .finally(() => {
+            $('.loading-spinner').hide();
+          });
+
+        // 删除功能
+        let competitorToDelete = null;
+        const deleteModal = new bootstrap.Modal('#deleteModal');
+
+        $(document).on('click', '.delete-btn', function() {
+          competitorToDelete = {
+            id: $(this).data('id'),
+            name: $(this).data('name')
+          };
+          $('#competitorToDelete').text(`${competitorToDelete.name} (ID: ${competitorToDelete.id})`);
+          deleteModal.show();
+        });
+
+        $('#confirmDelete').click(async function() {
+          if (!competitorToDelete) return;
+          
+          try {
+            const response = await fetch(`/api/cp/${competitorToDelete.id}`, {
+              method: 'DELETE',
+              headers: {
+                'Content-Type': 'application/json'
+              }
+            });
+
+            if (response.ok) {
+              // 重新加载数据
+              const refreshResponse = await fetch('/api/cp');
+              const newData = await refreshResponse.json();
+              table.clear().rows.add(newData).draw();
+              
+              showAlert('success', '成功', '竞品删除成功');
+            } else {
+              const result = await response.json();
+              showAlert('danger', '错误', result.error || '删除竞品失败');
+            }
+          } catch (error) {
+            console.error('删除失败:', error);
+            showAlert('danger', '错误', '服务器连接失败');
+          } finally {
+            deleteModal.hide();
+            competitorToDelete = null;
+          }
+        });
+
+        // 显示提示信息
+        function showAlert(type, title, message) {
+          const alertHtml = `
+            <div class="alert alert-${type} alert-dismissible fade show position-fixed top-0 end-0 m-3" role="alert" style="z-index: 1100">
+              <strong>${title}</strong> ${message}
+              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+          `;
+          $('body').append(alertHtml);
+          setTimeout(() => $('.alert').alert('close'), 5000);
+        }
+      });

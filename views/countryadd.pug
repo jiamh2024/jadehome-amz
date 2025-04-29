@@ -1,0 +1,142 @@
+//- views/add-country.pug
+doctype html
+html(lang="en")
+  head
+    title Add New Country
+    meta(charset="UTF-8")
+    meta(name="viewport" content="width=device-width, initial-scale=1.0")
+    link(href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet")
+    style.
+      .form-container {
+        max-width: 800px;
+        margin: 2rem auto;
+        padding: 2rem;
+        box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      }
+      .form-header {
+        margin-bottom: 2rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid #eee;
+      }
+      .form-group {
+        margin-bottom: 1.5rem;
+      }
+  body
+    .container.form-container
+      .form-header
+        h1 Add New Country
+        p.text-muted Fill in the details below to add a new country to the database
+
+      form#countryForm
+        .row
+          .col-md-6
+            .form-group
+              label.form-label(for="country_name") Country Name *
+              input#country_name.form-control(type="text" name="country_name" required)
+
+          .col-md-6
+            .form-group
+              label.form-label(for="country_code") Country Code (2 letters) *
+              input#country_code.form-control(type="text" name="country_code" maxlength="2" required pattern="[A-Za-z]{2}" title="Two-letter country code")
+
+        .row
+          .col-md-6
+            .form-group
+              label.form-label(for="currency_unit") Currency Unit *
+              input#currency_unit.form-control(type="text" name="currency_unit" required)
+
+          .col-md-6
+            .form-group
+              label.form-label(for="currency_code") Currency Code (3 letters) *
+              input#currency_code.form-control(type="text" name="currency_code" maxlength="3" required pattern="[A-Za-z]{3}" title="Three-letter currency code")
+        .row
+          .col-md-6
+            .form-group
+              label.form-label(for="length_unit") Length Unit *
+              input#length_unit.form-control(type="text" name="Length_unit" required)
+
+          .col-md-6
+            .form-group
+              label.form-label(for="weight_unit") Weight Unit *
+              input#weight_unit.form-control(type="text" name="Weight_unit" required)
+        .row
+          .col-md-6
+            .form-group
+              label.form-label(for="exchange_rate_to_cny") Exchange Rate to CNY *
+              input#exchange_rate_to_cny.form-control(type="number" name="exchange_rate_to_cny" step="0.0001" min="0" required)
+
+          .col-md-6
+            .form-group
+              label.form-label(for="vat_rate") VAT Rate (%) *
+              input#vat_rate.form-control(type="number" name="vat_rate" step="0.01" min="0" max="100" required)
+
+        .row
+          .col-md-6
+            .form-group
+              label.form-label(for="amz_commission_rate") AMZ Commission Rate (%) *
+              input#amz_commission_rate.form-control(type="number" name="amz_commission_rate" step="0.01" min="0" max="100" required)
+
+          .col-md-6
+            .form-group
+              label.form-label(for="shipping_cost") Shipping Cost *
+              input#shipping_cost.form-control(type="number" name="shipping_cost" step="0.01" min="0" required)
+
+        .form-group
+          label.form-label(for="local_delivery_rules") Local Delivery Rules
+          textarea#local_delivery_rules.form-control(name="local_delivery_rules" rows="3")
+
+        .d-flex.justify-content-between.mt-4
+          button.btn.btn-secondary(type="button" onclick="window.location.href='/cntyls'") Back to List
+          button.btn.btn-primary(type="submit") Add Country
+
+      #responseAlert.alert.mt-3(style="display: none")
+
+    script(src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js")
+    script.
+      document.getElementById('countryForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const formData = {
+          country_name: document.getElementById('country_name').value,
+          country_code: document.getElementById('country_code').value.toUpperCase(),
+          currency_unit: document.getElementById('currency_unit').value,
+          currency_code: document.getElementById('currency_code').value.toUpperCase(),
+          length_unit: document.getElementById('length_unit').value,
+          weight_unit: document.getElementById('weight_unit').value,
+          exchange_rate_to_cny: parseFloat(document.getElementById('exchange_rate_to_cny').value),
+          vat_rate: parseFloat(document.getElementById('vat_rate').value),
+          amz_commission_rate: parseFloat(document.getElementById('amz_commission_rate').value),
+          shipping_cost: parseFloat(document.getElementById('shipping_cost').value),
+          local_delivery_rules: document.getElementById('local_delivery_rules').value
+        };
+
+        try {
+          const response = await fetch('/api/country', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(formData)
+          });
+
+          const result = await response.json();
+          const alertDiv = document.getElementById('responseAlert');
+          
+          if (response.ok) {
+            alertDiv.className = 'alert alert-success mt-3';
+            alertDiv.textContent = `Country added successfully! ID: ${result.id}`;
+            alertDiv.style.display = 'block';
+            document.getElementById('countryForm').reset();
+          } else {
+            alertDiv.className = 'alert alert-danger mt-3';
+            alertDiv.textContent = `Error: ${result.error}`;
+            alertDiv.style.display = 'block';
+          }
+        } catch (error) {
+          const alertDiv = document.getElementById('responseAlert');
+          alertDiv.className = 'alert alert-danger mt-3';
+          alertDiv.textContent = 'Failed to connect to server';
+          alertDiv.style.display = 'block';
+          console.error('Error:', error);
+        }
+      });

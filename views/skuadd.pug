@@ -1,0 +1,248 @@
+//- views/skuAdd.pug
+doctype html
+html(lang="zh-CN")
+  head
+    meta(charset="UTF-8")
+    meta(name="viewport" content="width=device-width, initial-scale=1.0")
+    title 添加产品SKU
+    link(href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet")
+    style.
+      .form-container {
+        max-width: 800px;
+        margin: 2rem auto;
+        padding: 2rem;
+        box-shadow: 0 0 15px rgba(0,0,0,0.1);
+        border-radius: 8px;
+      }
+      .required-field:after {
+        content: " *";
+        color: #dc3545;
+      }
+      .dimension-inputs {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 15px;
+      }
+      .submit-loading {
+        position: relative;
+        pointer-events: none;
+      }
+      .submit-loading:after {
+        content: "";
+        position: absolute;
+        right: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 1rem;
+        height: 1rem;
+        border: 2px solid rgba(255,255,255,0.3);
+        border-radius: 50%;
+        border-top-color: white;
+        animation: spin 1s linear infinite;
+      }
+      @keyframes spin {
+        to { transform: translateY(-50%) rotate(360deg); }
+      }
+
+  body
+    .form-container
+      h2.mb-4 添加新产品SKU
+      form#skuForm(novalidate)
+        .mb-3
+          label.form-label.required-field(for="sku_code") SKU编码
+          input#sku_code.form-control(
+            type="text"
+            name="sku_code"
+            required
+            placeholder="PROD001-BL-S"
+            pattern="[A-Za-z0-9-]+"
+            title="仅允许字母、数字和连字符"
+          )
+          .invalid-feedback 请输入有效的SKU编码（仅允许字母、数字和连字符）
+
+        .mb-3
+          label.form-label.required-field(for="product_name") 产品名称
+          input#product_name.form-control(
+            type="text"
+            name="product_name"
+            required
+            minlength="2"
+          )
+          .invalid-feedback 请输入产品名称（至少2个字符）
+
+        .mb-3
+          label.form-label.required-field 尺寸（厘米）
+          .dimension-inputs
+            .form-group
+              label.small(for="length") 长度
+              input#length.form-control(
+                type="number"
+                name="length"
+                step="0.01"
+                min="0.1"
+                required
+                oninput="validity.valid||(value='');"
+              )
+            .form-group
+              label.small(for="width") 宽度
+              input#width.form-control(
+                type="number"
+                name="width"
+                step="0.01"
+                min="0.1"
+                required
+                oninput="validity.valid||(value='');"
+              )
+            .form-group
+              label.small(for="height") 高度
+              input#height.form-control(
+                type="number"
+                name="height"
+                step="0.01"
+                min="0.1"
+                required
+                oninput="validity.valid||(value='');"
+              )
+
+        .row.mb-3
+          .col-md-6
+            label.form-label.required-field(for="weight") 重量（千克）
+            input#weight.form-control(
+              type="number"
+              name="weight"
+              step="0.001"
+              min="0.001"
+              required
+              oninput="validity.valid||(value='');"
+            )
+            .invalid-feedback 请输入有效的重量
+          .col-md-6
+            label.form-label.required-field(for="purchase_cost") 采购成本
+            .input-group
+              input#purchase_cost.form-control(
+                type="number"
+                name="purchase_cost"
+                step="0.01"
+                min="0.01"
+                required
+                oninput="validity.valid||(value='');"
+              )
+              select#currency.form-select(name="currency" style="max-width: 100px")
+                option(value="USD") 美元
+                option(value="EUR") 欧元
+                option(value="GBP") 英镑
+                option(value="CNY") 人民币
+                option(value="JPY") 日元
+            .invalid-feedback 请输入有效的成本
+
+        .row.mb-4
+          .col-md-6
+            label.form-label(for="has_battery") 包含电池？
+            .form-check
+              input#has_battery.form-check-input(
+                type="checkbox"
+                name="has_battery"
+              )
+              label.form-check-label(for="has_battery") 是
+          .col-md-6#batteryTypeContainer(style="display: none")
+            label.form-label(for="battery_type") 电池类型
+            select#battery_type.form-select(name="battery_type" required)
+              option(value="" disabled selected) 请选择电池类型
+              option(value="Lithium") 锂电池
+              option(value="Lead-acid") 铅酸电池
+            .invalid-feedback 请选择电池类型
+
+        .d-grid.gap-2
+          button#submitBtn.btn.btn-primary(type="submit") 保存SKU
+          button.btn.btn-outline-secondary(type="reset") 重置表单
+          #message.alert.mt-3(style="display: none")
+
+    script(src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js")
+    script(src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js")
+    script.
+      // 表单控制器
+      (function() {
+        const form = document.getElementById('skuForm');
+        const batteryCheckbox = document.getElementById('has_battery');
+        const batteryContainer = document.getElementById('batteryTypeContainer');
+        const batteryTypeSelect = document.getElementById('battery_type');
+        const submitBtn = document.getElementById('submitBtn');
+        const messageEl = document.getElementById('message');
+
+        // 切换电池相关字段显示
+        function toggleBatteryFields() {
+          const isChecked = batteryCheckbox.checked;
+          batteryContainer.style.display = isChecked ? 'block' : 'none';
+          batteryTypeSelect.required = isChecked;
+          batteryTypeSelect.value = isChecked ? '' : 'None';
+        }
+
+        // 处理表单提交
+        async function handleSubmit(e) {
+          e.preventDefault();
+          
+          if (!form.checkValidity()) {
+            form.classList.add('was-validated');
+            return;
+          }
+
+          // 设置加载状态
+          submitBtn.classList.add('submit-loading');
+          submitBtn.disabled = true;
+          messageEl.style.display = 'none';
+
+          try {
+            const formData = {
+              sku_code: form.sku_code.value.trim(),
+              product_name: form.product_name.value.trim(),
+              dimensions: {
+                length: parseFloat(form.length.value),
+                width: parseFloat(form.width.value),
+                height: parseFloat(form.height.value)
+              },
+              weight: parseFloat(form.weight.value),
+              has_battery: batteryCheckbox.checked,
+              battery_type: batteryCheckbox.checked ? batteryTypeSelect.value : null,
+              purchase_cost: parseFloat(form.purchase_cost.value),
+              currency: form.currency.value
+            };
+
+            const response = await axios.post('/api/sku', formData);
+            
+            showMessage('success', `
+              <strong>成功！</strong> SKU已创建，ID: ${response.data.data.sku_id}
+              <br><a href="/api/sku/${response.data.data.sku_id}" class="alert-link">查看详情</a>
+            `);
+            
+            form.reset();
+            form.classList.remove('was-validated');
+            toggleBatteryFields();
+          } catch (error) {
+            const errorMsg = error.response?.data?.errors 
+              ? error.response.data.errors.map(e => e.msg).join('<br>')
+              : error.response?.data?.message 
+                ? error.response.data.message
+                : '创建SKU失败，请重试';
+            
+            showMessage('danger', `<strong>错误！</strong> ${errorMsg}`);
+          } finally {
+            submitBtn.classList.remove('submit-loading');
+            submitBtn.disabled = false;
+          }
+        }
+
+        // 显示状态消息
+        function showMessage(type, html) {
+          messageEl.className = `alert alert-${type} mt-3`;
+          messageEl.innerHTML = html;
+          messageEl.style.display = 'block';
+          messageEl.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // 初始化事件监听
+        batteryCheckbox.addEventListener('change', toggleBatteryFields);
+        form.addEventListener('submit', handleSubmit);
+        
+        // 初始化电池相关字段
+        toggleBatteryFields();
+      })();
