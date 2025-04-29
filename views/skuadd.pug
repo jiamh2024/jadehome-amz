@@ -128,10 +128,10 @@ html(lang="zh-CN")
                 oninput="validity.valid||(value='');"
               )
               select#currency.form-select(name="currency" style="max-width: 100px")
-                option(value="USD") 美元
-                option(value="EUR") 欧元
-                option(value="GBP") 英镑
                 option(value="CNY") 人民币
+                option(value="USD") 美元
+                option(value="GBP") 英镑
+                option(value="CAD") 加拿大元
                 option(value="JPY") 日元
             .invalid-feedback 请输入有效的成本
 
@@ -195,23 +195,32 @@ html(lang="zh-CN")
             const formData = {
               sku_code: form.sku_code.value.trim(),
               product_name: form.product_name.value.trim(),
-              dimensions: {
-                length: parseFloat(form.length.value),
-                width: parseFloat(form.width.value),
-                height: parseFloat(form.height.value)
-              },
+              // 方案1：平铺参数（根据接口文档选择）
+              length: parseFloat(form.length.value),
+              width: parseFloat(form.width.value),
+              height: parseFloat(form.height.value),
+              
+              // 或者方案2：保持嵌套但确保后端支持
+              //dimensions: {
+              //  length: parseFloat(form.length.value),
+              //  width: parseFloat(form.width.value),
+              //  height: parseFloat(form.height.value)
+              //},
               weight: parseFloat(form.weight.value),
               has_battery: batteryCheckbox.checked,
-              battery_type: batteryCheckbox.checked ? batteryTypeSelect.value : null,
+              battery_type: batteryCheckbox.checked ? batteryTypeSelect.value : "None",
               purchase_cost: parseFloat(form.purchase_cost.value),
               currency: form.currency.value
             };
+
+            // 调试输出
+            console.log('API Payload:', JSON.stringify(formData, null, 2));
 
             const response = await axios.post('/api/sku', formData);
             
             showMessage('success', `
               <strong>成功！</strong> SKU已创建，ID: ${response.data.data.sku_id}
-              <br><a href="/api/sku/${response.data.data.sku_id}" class="alert-link">查看详情</a>
+              <br><a href="/skuedit/${response.data.data.sku_id}" class="alert-link">查看详情</a>
             `);
             
             form.reset();

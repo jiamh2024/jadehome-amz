@@ -124,10 +124,10 @@ html(lang="en")
                 required
               )
               select#currency.form-select(name="currency" style="max-width: 100px")
-                option(value="USD") USD
-                option(value="EUR") EUR
-                option(value="GBP") GBP
                 option(value="CNY") CNY
+                option(value="USD") USD
+                option(value="GBP") GBP
+                option(value="CAD") CAD
                 option(value="JPY") JPY
 
         .row.mb-4
@@ -150,7 +150,7 @@ html(lang="en")
           button.btn.btn-primary(type="submit") 
             i.bi.bi-save
             |  Save Changes
-          a.btn.btn-outline-secondary(href="/api/skus") 
+          a.btn.btn-outline-secondary(href="/skuls") 
             i.bi.bi-arrow-left
             |  Back to List
 
