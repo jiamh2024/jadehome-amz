@@ -24,7 +24,7 @@ var skuApiRouter = require('./routes/api/sku');
 var countryApiRouter = require('./routes/api/country');
 var cpApiRouter = require('./routes/api/cp');
 var locaApiRouter = require('./routes/api/loca');
-var kvApiRouter = require('./routes/api/kv');
+var kvApiRouter = require('./routes/api/amz-pkv');
 
 
 var app = express();

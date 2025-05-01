@@ -1,52 +1,19 @@
 doctype html
-html(lang="en")
+html(lang="zh-CN")
 head
   meta(charset="UTF-8")
   meta(name="viewport", content="width=device-width, initial-scale=1.0")
   title 产品规格管理
+  link(href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css", rel="stylesheet")
+  link(href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css", rel="stylesheet")
   style.
-    body {
-      font-family: Arial, sans-serif;
-      max-width: 800px;
+    .form-container {
+      max-width: 1000px;
       margin: 0 auto;
       padding: 20px;
     }
-    .form-group {
-      margin-bottom: 15px;
-    }
-    label {
-      display: block;
-      margin-bottom: 5px;
-      font-weight: bold;
-    }
-    select, input {
-      padding: 8px;
-      width: 100%;
-      box-sizing: border-box;
-    }
-    button {
-      padding: 8px 15px;
-      background: #4CAF50;
-      color: white;
-      border: none;
-      cursor: pointer;
-      margin-right: 10px;
-    }
-    button:hover {
-      background: #45a049;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
+    .table-container {
       margin-top: 20px;
-    }
-    th, td {
-      border: 1px solid #ddd;
-      padding: 8px;
-      text-align: left;
-    }
-    th {
-      background-color: #f2f2f2;
     }
     .editable-row input {
       width: 95%;
@@ -54,60 +21,68 @@ head
     .actions {
       white-space: nowrap;
     }
-    .notification {
-      padding: 10px;
-      margin: 10px 0;
-      border-radius: 4px;
-      display: none;
+    .flag-icon {
+      width: 20px;
+      margin-right: 5px;
     }
-    .success {
-      background-color: #dff0d8;
-      color: #3c763d;
-    }
-    .error {
-      background-color: #f2dede;
-      color: #a94442;
+    .select2-container {
+      width: 100% !important;
     }
 
 body
-  h1 产品规格管理
-  
-  // 国家/SKU选择表单
-  .form-group
-    label(for="country") 国家编码:
-    select#country(name="country")
-      option(value="") -- 请选择国家 --
-      option(value="US") 美国
-      option(value="CA") 加拿大
-      option(value="UK") 英国
-      option(value="JP") 日本
-  
-  .form-group
-    label(for="sku") 产品SKU:
-    input#sku(type="text", name="sku", placeholder="输入产品SKU编码")
-  
-  button#fetchSpecs 查询规格
-  
-  // 键值对管理区域
-  #specsContainer(style="display: none;")
-    h2 规格键值对
-    table#specsTable
-      thead
-        tr
-          th 键名
-          th 值
-          th 操作
-      tbody#specsBody
+  .form-container
+    h1.mb-4 产品规格管理
     
-    button#addRow 新增行
-    button#saveAll 保存所有变更
+    // 查询表单
+    .card.mb-4
+      .card-body
+        h5.card-title 查询条件
+        .row
+          .col-md-6
+            .mb-3
+              label.form-label(for="country") 国家/地区
+              select#country.form-select(name="country")
+                option(value="") 加载中...
+          .col-md-6
+            .mb-3
+              label.form-label(for="sku") 产品SKU
+              select#sku.form-select(name="sku")
+                option(value="") 请先选择国家
+        button#fetchSpecs.btn.btn-primary 查询规格
     
-    .notification#notification
-  
+    // 规格管理区域
+    #specsContainer.card(style="display: none;")
+      .card-body
+        .d-flex.justify-content-between.align-items-center.mb-3
+          h5.card-title 规格键值对
+          div
+            button#addRow.btn.btn-success.btn-sm.me-2 新增行
+            button#saveAll.btn.btn-primary.btn-sm 保存所有变更
+        
+        .table-responsive
+          table#specsTable.table.table-striped.table-hover
+            thead
+              tr
+                th(style="width: 30%") 键名
+                th(style="width: 50%") 值
+                th(style="width: 20%") 操作
+            tbody#specsBody
+              tr
+                td(colspan="3", class="text-center text-muted") 请先选择国家和SKU进行查询
+        
+        #notification.alert.mt-3(style="display: none")
+
+  script(src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js")
+  script(src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js")
+  script(src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js")
   script.
     document.addEventListener('DOMContentLoaded', function() {
+      // 初始化Select2
+      $('#country').select2();
+      $('#sku').select2();
+      
       const countrySelect = document.getElementById('country');
-      const skuInput = document.getElementById('sku');
+      const skuSelect = document.getElementById('sku');
       const fetchButton = document.getElementById('fetchSpecs');
       const specsContainer = document.getElementById('specsContainer');
       const specsBody = document.getElementById('specsBody');
@@ -115,36 +90,119 @@ body
       const saveAllButton = document.getElementById('saveAll');
       const notification = document.getElementById('notification');
       
+      // 加载国家列表
+      loadCountries();
+      
+      // 国家选择变化时加载SKU
+      $('#country').on('change', function() {
+        const country = this.value;
+        if (country) {
+          loadSKUs(country);
+        } else {
+          $('#sku').empty().append('<option value="">请先选择国家</option>');
+        }
+      });
+      
+      // 显示通知
+      function showNotification(message, type) {
+        notification.textContent = message;
+        notification.className = `alert alert-${type} mt-3`;
+        notification.style.display = 'block';
+        
+        setTimeout(() => {
+          notification.style.display = 'none';
+        }, 5000);
+      }
+      
+      // 从API加载国家列表
+      async function loadCountries() {
+        try {
+          const response = await fetch('/api/country');
+          
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          
+          const countries = await response.json();
+          
+          $('#country').empty().append('<option value="">-- 请选择国家 --</option>');
+          
+          countries.forEach(country => {
+            $('#country').append(`<option value="${country.country_code}">${country.country_name}</option>`);
+          });
+          
+        } catch (error) {
+          console.error('加载国家列表失败:', error);
+          $('#country').empty().append('<option value="">加载失败，请刷新页面</option>');
+          showNotification('加载国家列表失败: ' + error.message, 'danger');
+        }
+      }
+      
+      // 根据国家加载SKU列表
+      async function loadSKUs() {
+        try {
+          $('#sku').empty().append('<option value="">加载中...</option>');
+          
+          const response = await fetch(`/api/sku`);
+          
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          
+          const skus = await response.json();
+          
+          $('#sku').empty().append('<option value="">-- 请选择SKU --</option>');
+          
+          if (skus.length === 0) {
+            $('#sku').append('<option value="">该国家暂无SKU数据</option>');
+          } else {
+            skus.data.skus.forEach(sku => {
+              $('#sku').append(`<option value="${sku.sku_code}">${sku.sku_code}</option>`);
+            });
+          }
+          
+        } catch (error) {
+          console.error('加载SKU列表失败:', error);
+          $('#sku').empty().append('<option value="">加载失败，请重试</option>');
+          showNotification('加载SKU列表失败: ' + error.message, 'danger');
+        }
+      }
+      
       // 查询现有规格
       fetchButton.addEventListener('click', async function() {
         const country = countrySelect.value;
-        const sku = skuInput.value.trim();
+        const sku = skuSelect.value;
         
         if (!country || !sku) {
-          showNotification('请选择国家和输入SKU', 'error');
+          showNotification('请选择国家和SKU', 'danger');
           return;
         }
         
         try {
-          const response = await fetch(`/api/specs?sku_code=${sku}&country_code=${country}`);
+          const response = await fetch(`/api/kv?sku_code=${sku}&country_code=${country}`);
+          
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          
           const specs = await response.json();
           
-          renderSpecs(specs);
+          if (specs.length === 0) {
+            specsBody.innerHTML = '<tr><td colspan="3" class="text-center text-muted">没有找到规格数据</td></tr>';
+          } else {
+            renderSpecs(specs);
+          }
+          
           specsContainer.style.display = 'block';
         } catch (error) {
           console.error('查询失败:', error);
-          showNotification('查询规格失败: ' + error.message, 'error');
+          showNotification('查询规格失败: ' + error.message, 'danger');
         }
       });
       
       // 渲染规格列表
       function renderSpecs(specs) {
         specsBody.innerHTML = '';
-        
-        if (specs.length === 0) {
-          specsBody.innerHTML = '<tr><td colspan="3">暂无规格数据</td></tr>';
-          return;
-        }
         
         specs.forEach(spec => {
           addRowToTable(spec.spec_key, spec.spec_value, false);
@@ -162,11 +220,18 @@ body
         row.className = 'editable-row';
         
         row.innerHTML = `
-          <td><input type="text" class="spec-key" value="${key}" ${!isNew ? 'readonly' : ''}></td>
-          <td><input type="text" class="spec-value" value="${value}"></td>
+          <td>
+            <input type="text" class="form-control form-control-sm spec-key" value="${key}" 
+                   ${!isNew ? 'readonly' : ''}>
+          </td>
+          <td>
+            <input type="text" class="form-control form-control-sm spec-value" value="${value || ''}">
+          </td>
           <td class="actions">
-            <button class="save-row">${isNew ? '添加' : '更新'}</button>
-            <button class="delete-row">删除</button>
+            <button class="btn btn-sm ${isNew ? 'btn-success' : 'btn-primary'} save-row me-1">
+              ${isNew ? '添加' : '更新'}
+            </button>
+            <button class="btn btn-sm btn-danger delete-row">删除</button>
           </td>
         `;
         
@@ -180,7 +245,7 @@ body
       // 保存单行
       async function saveRow(row, isNew) {
         const country = countrySelect.value;
-        const sku = skuInput.value.trim();
+        const sku = skuSelect.value;
         const keyInput = row.querySelector('.spec-key');
         const valueInput = row.querySelector('.spec-value');
         
@@ -188,71 +253,84 @@ body
         const value = valueInput.value.trim();
         
         if (!key) {
-          showNotification('键名不能为空', 'error');
+          showNotification('键名不能为空', 'danger');
           return;
         }
         
         try {
-          const response = await fetch('/api/specs', {
-            method: 'POST',
+          const endpoint = '/api/kv';
+          const method = isNew ? 'POST' : 'PUT';
+          const body = {
+            sku_code: sku,
+            country_code: country,
+            spec_key: key,
+            spec_value: value || null
+          };
+          
+          const response = await fetch(endpoint, {
+            method: method,
             headers: {
               'Content-Type': 'application/json'
             },
-            body: JSON.stringify({
-              sku_code: sku,
-              country_code: country,
-              spec_key: key,
-              spec_value: value
-            })
+            body: JSON.stringify(body)
           });
+          
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || '操作失败');
+          }
           
           const result = await response.json();
           
-          if (response.ok) {
-            showNotification(`规格 ${key} ${isNew ? '添加' : '更新'}成功`, 'success');
-            // 如果是新增，将键设为只读
-            if (isNew) {
-              keyInput.readOnly = true;
-              row.querySelector('.save-row').textContent = '更新';
-            }
-          } else {
-            throw new Error(result.error || '保存失败');
+          showNotification(`规格 ${key} ${isNew ? '添加' : '更新'}成功`, 'success');
+          
+          // 如果是新增，将键设为只读
+          if (isNew) {
+            keyInput.readOnly = true;
+            row.querySelector('.save-row').textContent = '更新';
+            row.querySelector('.save-row').className = 'btn btn-sm btn-primary save-row me-1';
           }
         } catch (error) {
           console.error('保存失败:', error);
-          showNotification('保存失败: ' + error.message, 'error');
+          showNotification('操作失败: ' + error.message, 'danger');
         }
       }
       
       // 删除单行
       async function deleteRow(row, key) {
         const country = countrySelect.value;
-        const sku = skuInput.value.trim();
+        const sku = skuSelect.value;
+        
+        if (!key) {
+          // 如果是未保存的新行，直接移除
+          row.remove();
+          return;
+        }
         
         if (!confirm(`确定要删除规格键 "${key}" 吗？`)) {
           return;
         }
         
         try {
-          const response = await fetch(`/api/specs/${sku}/${country}/${key}`, {
+          const response = await fetch(`/api/kv?sku_code=${sku}&country_code=${country}&spec_key=${key}`, {
             method: 'DELETE'
           });
           
-          if (response.ok) {
-            showNotification(`规格 ${key} 删除成功`, 'success');
-            row.remove();
-            
-            // 如果表格为空，显示提示
-            if (specsBody.querySelectorAll('tr').length === 0) {
-              specsBody.innerHTML = '<tr><td colspan="3">暂无规格数据</td></tr>';
-            }
-          } else {
-            const result = await response.json();
-            throw new Error(result.error || '删除失败');
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || '删除失败');
+          }
+          
+          showNotification(`规格 ${key} 删除成功`, 'success');
+          row.remove();
+          
+          // 如果表格为空，显示提示
+          if (specsBody.querySelectorAll('tr').length === 0) {
+            specsBody.innerHTML = '<tr><td colspan="3" class="text-center text-muted">没有规格数据</td></tr>';
           }
         } catch (error) {
           console.error('删除失败:', error);
-          showNotification('删除失败: ' + error.message, 'error');
+          showNotification('删除失败: ' + error.message, 'danger');
         }
       }
       
@@ -260,29 +338,38 @@ body
       saveAllButton.addEventListener('click', async function() {
         const rows = specsBody.querySelectorAll('tr.editable-row');
         const country = countrySelect.value;
-        const sku = skuInput.value.trim();
+        const sku = skuSelect.value;
         
         if (!country || !sku) {
-          showNotification('请先选择国家和输入SKU', 'error');
+          showNotification('请先选择国家和SKU', 'danger');
           return;
         }
         
         if (rows.length === 0) {
-          showNotification('没有可保存的规格数据', 'error');
+          showNotification('没有可保存的规格数据', 'warning');
           return;
         }
         
         try {
           const promises = [];
+          const newRows = [];
           
           rows.forEach(row => {
             const key = row.querySelector('.spec-key').value.trim();
             const value = row.querySelector('.spec-value').value.trim();
+            const isNew = !row.querySelector('.spec-key').readOnly;
             
             if (key) {
+              if (isNew) {
+                newRows.push({ row, key });
+              }
+              
+              const endpoint = '/api/kv';
+              const method = isNew ? 'POST' : 'PUT';
+              
               promises.push(
-                fetch('/api/specs', {
-                  method: 'POST',
+                fetch(endpoint, {
+                  method: method,
                   headers: {
                     'Content-Type': 'application/json'
                   },
@@ -290,35 +377,32 @@ body
                     sku_code: sku,
                     country_code: country,
                     spec_key: key,
-                    spec_value: value
+                    spec_value: value || null
                   })
                 })
               );
             }
           });
           
-          const results = await Promise.all(promises);
-          const allSuccess = results.every(res => res.ok);
+          const responses = await Promise.all(promises);
+          const allSuccess = responses.every(res => res.ok);
           
           if (allSuccess) {
+            // 更新新增行的状态
+            newRows.forEach(({ row, key }) => {
+              row.querySelector('.spec-key').readOnly = true;
+              const saveBtn = row.querySelector('.save-row');
+              saveBtn.textContent = '更新';
+              saveBtn.className = 'btn btn-sm btn-primary save-row me-1';
+            });
+            
             showNotification('所有规格保存成功', 'success');
           } else {
             throw new Error('部分规格保存失败');
           }
         } catch (error) {
           console.error('批量保存失败:', error);
-          showNotification('保存失败: ' + error.message, 'error');
+          showNotification('保存失败: ' + error.message, 'danger');
         }
       });
-      
-      // 显示通知
-      function showNotification(message, type) {
-        notification.textContent = message;
-        notification.className = 'notification ' + type;
-        notification.style.display = 'block';
-        
-        setTimeout(() => {
-          notification.style.display = 'none';
-        }, 5000);
-      }
     });
