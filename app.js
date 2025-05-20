@@ -18,6 +18,10 @@ var cpListRouter = require('./routes/cp-ls');
 var profitRouter = require('./routes/profit');
 var vcalRouter = require('./routes/v-cal');
 var amzRouter = require('./routes/amz-kv');
+var amzFileRouter = require('./routes/amz-file');
+var amzOrder = require('./routes/amz-order');
+
+
 
 var kanbanApiRouter = require('./routes/api/kanban');
 var skuApiRouter = require('./routes/api/sku');
@@ -25,6 +29,8 @@ var countryApiRouter = require('./routes/api/country');
 var cpApiRouter = require('./routes/api/cp');
 var locaApiRouter = require('./routes/api/loca');
 var kvApiRouter = require('./routes/api/amz-pkv');
+
+var amzApiRouter = require('./routes/sp-api/amz-api');
 
 
 var app = express();
@@ -47,6 +53,8 @@ app.use('/api/cp', cpApiRouter);
 app.use('/api/loca', locaApiRouter);
 app.use('/api/kv', kvApiRouter);
 
+app.use('/api/amzapi', amzApiRouter);
+
 // Web Routes
 app.use('/', indexRouter);
 app.use('/users', usersRouter);
@@ -62,6 +70,9 @@ app.use('/cpls', cpListRouter);
 app.use('/profit', profitRouter);
 app.use('/vcal', vcalRouter);
 app.use('/amzkv', amzRouter);
+app.use('/amzfile', amzFileRouter);
+
+app.use('/amzorder', amzOrder);
 
 
 // catch 404 and forward to error handler
