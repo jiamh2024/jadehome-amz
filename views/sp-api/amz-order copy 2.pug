@@ -52,55 +52,11 @@ head
       font-size: 0.75em;
       margin-left: 5px;
     }
-    .market-tabs {
-      margin-bottom: 20px;
-    }
-    .market-tabs .nav-link {
-      padding: 0.5rem 1rem;
-    }
-    .market-tabs .nav-link.active {
-      font-weight: bold;
-      border-bottom: 3px solid #0d6efd;
-    }
-    .refresh-btn {
-      margin-left: 10px;
-    }
 
 body
   .container.mt-4
     h1.mb-4 亚马逊多国当日订单
-    .d-flex.justify-content-between.align-items-center
-      p.text-muted.mb-0 自动查询各市场今日订单
-      button#refreshBtn.btn.btn-sm.btn-outline-secondary.refresh-btn
-        i.bi.bi-arrow-clockwise
-        |  刷新数据
-    
-    // 市场选择标签
-    ul.nav.nav-tabs.market-tabs.mb-3#marketTabs
-      li.nav-item
-        a.nav-link.active(data-market="all") 
-          i.bi.bi-globe
-          |  全部市场
-      li.nav-item
-        a.nav-link(data-market="US") 
-          i.bi.bi-flag-fill.text-danger
-          |  美国
-      li.nav-item
-        a.nav-link(data-market="CA") 
-          i.bi.bi-flag-fill.text-danger
-          |  加拿大
-      li.nav-item
-        a.nav-link(data-market="UK") 
-          i.bi.bi-flag-fill.text-primary
-          |  英国
-      li.nav-item
-        a.nav-link(data-market="AE") 
-          i.bi.bi-flag-fill.text-success
-          |  阿联酋
-      li.nav-item
-        a.nav-link(data-market="SA") 
-          i.bi.bi-flag-fill.text-success
-          |  沙特
+    p.text-muted 自动查询各市场今日订单
     
     // 加载指示器
     .loading#loading
@@ -115,61 +71,45 @@ body
     document.addEventListener('DOMContentLoaded', function() {
       const loading = document.getElementById('loading');
       const ordersContainer = document.getElementById('ordersContainer');
-      const marketTabs = document.getElementById('marketTabs');
-      const refreshBtn = document.getElementById('refreshBtn');
       
       // 支持的亚马逊市场
-      const markets = {
-        US: { name: '美国',   color: 'danger',  id: 'US'},
-        CA: { name: '加拿大', color: 'danger',  id: 'CA'},
-        UK: { name: '英国',   color: 'primary', id: 'UK'},
-        AE: { name: '阿联酋', color: 'success', id: 'AE'},
-        SA: { name: '沙特',   color: 'success', id: 'SA'}
-      };
+      const markets = [
+        { id: 'US', name: '美国', color: 'danger' },
+        { id: 'CA', name: '加拿大', color: 'danger' },
+        { id: 'UK', name: '英国', color: 'primary' },
+        { id: 'AE', name: '阿联酋', color: 'success' },
+        { id: 'SA', name: '沙特', color: 'success' }
+      ];
       
-      // 当前显示的市场
-      let currentMarket = 'all';
-      let allMarketOrders = {};
-      
-      // 初始化页面
+      // 页面加载时自动查询
       loadAllMarketOrders();
       
-      // 市场标签切换事件
-      marketTabs.querySelectorAll('.nav-link').forEach(tab => {
-        tab.addEventListener('click', function() {
-          currentMarket = this.getAttribute('data-market');
-          renderOrders();
-        });
-      });
-      
-      // 刷新按钮事件
-      refreshBtn.addEventListener('click', loadAllMarketOrders);
-      
-      // 加载所有市场订单
       async function loadAllMarketOrders() {
         try {
-          loading.style.display = 'block';
           ordersContainer.innerHTML = '';
           
           // 并行查询所有市场
-          const marketIds = Object.keys(markets);
-          const marketPromises = marketIds.map(marketId => 
-            getMarketOrders(marketId)
-              .then(data => ({ marketId, data }))
-              .catch(error => ({ marketId, error }))
-          );
+          const marketPromises = markets.map(market => {
+            return getMarketOrders(market.id);
+          });
           
-          const results = await Promise.all(marketPromises);
+          const allMarketResults = await Promise.all(marketPromises);
           
-          // 整理结果
-          allMarketOrders = results.reduce((acc, { marketId, data, error }) => {
-            acc[marketId] = error 
-              ? { error: error.message } 
-              : { payload: data };
-            return acc;
-          }, {});
+          // 渲染所有市场结果
+          allMarketResults.forEach((result, index) => {
+            if(result.orders && result.orders.length > 0) {
+              renderMarketOrders(markets[index], result.orders);
+            }
+          });
           
-          renderOrders();
+          // 如果没有数据，显示提示
+          if(ordersContainer.innerHTML === '') {
+            ordersContainer.innerHTML = `
+              <div class="alert alert-info">
+                <i class="bi bi-info-circle-fill"></i> 今日没有找到任何订单
+              </div>
+            `;
+          }
           
         } catch (error) {
           console.error('订单查询错误:', error);
@@ -199,8 +139,8 @@ body
           createdBefore: endDate.toISOString()
         };
         
-        // 调用后端API（使用单市场查询接口）
-        const response = await fetch(`/api/amzapi/today?${new URLSearchParams(params)}`, {
+        // 调用后端API（实际项目中替换为您的API端点）
+        const response = await fetch('/api/amzapi/today?' + new URLSearchParams(params), {
           headers: {
             'Content-Type': 'application/json'
           }
@@ -218,61 +158,6 @@ body
         }
       }
       
-      // 渲染订单
-      function renderOrders() {
-        ordersContainer.innerHTML = '';
-        
-        if (currentMarket === 'all') {
-          // 渲染所有市场
-          Object.entries(allMarketOrders).forEach(([marketId, marketData]) => {
-            const marketInfo = markets[marketId];
-            if (marketData.error) {
-              renderMarketError(marketInfo, marketData.error);
-            } else if (marketData.payload?.orders?.length > 0) {
-              renderMarketOrders(marketInfo, marketData.payload.orders);
-            }
-          });
-        } else {
-          // 渲染单个市场
-          const marketData = allMarketOrders[currentMarket];
-          const marketInfo = markets[currentMarket];
-          
-          if (marketData.error) {
-            renderMarketError(marketInfo, marketData.error);
-          } else if (marketData.payload?.orders) {
-            renderMarketOrders(marketInfo, marketData.payload.orders);
-          }
-        }
-        
-        // 如果没有数据，显示提示
-        if (ordersContainer.innerHTML === '') {
-          ordersContainer.innerHTML = `
-            <div class="alert alert-info">
-              <i class="bi bi-info-circle-fill"></i> 没有找到订单数据
-            </div>
-          `;
-        }
-      }
-      
-      // 渲染市场错误信息
-      function renderMarketError(market, error) {
-        const marketSection = document.createElement('div');
-        marketSection.className = 'market-section';
-        marketSection.innerHTML = `
-          <div class="market-header d-flex justify-content-between align-items-center">
-            <h5>
-              <i class="bi bi-flag-fill text-${market.color}"></i>
-              ${market.name}市场
-            </h5>
-            <span class="badge bg-secondary">${market.name}</span>
-          </div>
-          <div class="alert alert-danger">
-            <i class="bi bi-exclamation-triangle-fill"></i> ${error}
-          </div>
-        `;
-        ordersContainer.appendChild(marketSection);
-      }
-      
       // 渲染单个市场的订单
       function renderMarketOrders(market, orders) {
         const marketSection = document.createElement('div');
@@ -284,9 +169,9 @@ body
               <i class="bi bi-flag-fill text-${market.color}"></i>
               ${market.name}市场 (${orders.length}个订单)
             </h5>
-            <span class="badge bg-secondary">${market.name}</span>
+            <span class="badge bg-secondary">${market.id}</span>
           </div>
-          ${orders.map(order => renderOrder(order, market.name)).join('')}
+          ${orders.map(order => renderOrder(order, market.id)).join('')}
         `;
         
         ordersContainer.appendChild(marketSection);
