@@ -17,7 +17,7 @@ let tokenExpires = 0;
 const MARKETPLACES = {
   US: { id: 'ATVPDKIKX0DER', endpoint: process.env.SP_API_EP_NA, refresh_token: process.env.SP_API_REFRESH_TOKEN_NA } ,
   CA: { id: 'A2EUQ1WTGCTBG2', endpoint: process.env.SP_API_EP_NA, refresh_token: process.env.SP_API_REFRESH_TOKEN_NA },
-  UK: { id: 'A1F83G8C2ARO7P', endpoint: process.env.SP_API_EP_EU, refresh_token: process.env.SP_API_REFRESH_TOKEN_ER },
+  UK: { id: 'A1F83G8C2ARO7P', endpoint: process.env.SP_API_EP_EU, refresh_token: process.env.SP_API_REFRESH_TOKEN_EU },
   AE: { id: 'A2VIGQ35RCS4UG', endpoint: process.env.SP_API_EP_EU, refresh_token: process.env.SP_API_REFRESH_TOKEN_AE },
   SA: { id: 'A17E79C6D8DWNP', endpoint: process.env.SP_API_EP_EU, refresh_token: process.env.SP_API_REFRESH_TOKEN_SA }
 };
