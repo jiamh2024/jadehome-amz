@@ -15,11 +15,11 @@ let tokenExpires = 0;
 
 // 亚马逊市场配置
 const MARKETPLACES = {
-  US: { id: 'ATVPDKIKX0DER', endpoint: 'https://sellingpartnerapi-na.amazon.com', refresh_token: process.env.SP_API_REFRESH_TOKEN_NA } ,
-  CA: { id: 'A2EUQ1WTGCTBG2', endpoint: 'https://sellingpartnerapi-na.amazon.com', refresh_token: process.env.SP_API_REFRESH_TOKEN_NA },
-  UK: { id: 'A1F83G8C2ARO7P', endpoint: 'https://sellingpartnerapi-eu.amazon.com', refresh_token: process.env.SP_API_REFRESH_TOKEN_ER },
-  AE: { id: 'A2VIGQ35RCS4UG', endpoint: 'https://sellingpartnerapi-eu.amazon.com', refresh_token: process.env.SP_API_REFRESH_TOKEN_AE },
-  SA: { id: 'A17E79C6D8DWNP', endpoint: 'https://sellingpartnerapi-eu.amazon.com', refresh_token: process.env.SP_API_REFRESH_TOKEN_SA }
+  US: { id: 'ATVPDKIKX0DER', endpoint: process.env.SP_API_EP_NA, refresh_token: process.env.SP_API_REFRESH_TOKEN_NA } ,
+  CA: { id: 'A2EUQ1WTGCTBG2', endpoint: process.env.SP_API_EP_NA, refresh_token: process.env.SP_API_REFRESH_TOKEN_NA },
+  UK: { id: 'A1F83G8C2ARO7P', endpoint: process.env.SP_API_EP_EU, refresh_token: process.env.SP_API_REFRESH_TOKEN_ER },
+  AE: { id: 'A2VIGQ35RCS4UG', endpoint: process.env.SP_API_EP_EU, refresh_token: process.env.SP_API_REFRESH_TOKEN_AE },
+  SA: { id: 'A17E79C6D8DWNP', endpoint: process.env.SP_API_EP_EU, refresh_token: process.env.SP_API_REFRESH_TOKEN_SA }
 };
 
 /**
@@ -148,14 +148,14 @@ async function getOrders(marketplaceId, params) {
     params: {
       MarketplaceIds: MARKETPLACES[marketplaceId]?.id || MARKETPLACES.US.id,
       CreatedAfter: params.createdAfter,
-      CreatedBefore: params.createdBefore,
-      OrderStatus: 'shipped'
+      //CreatedAfter: 'TEST_CASE_200',
+      CreatedBefore: params.createdBefore
     },
     headers: {
       'x-amz-access-token': accessToken,
       'User-Agent': process.env.SP_API_USER_AGENT || 'My-App/1.0',
       'Content-Type': 'application/json',
-      'version': 'beta'
+      version: 'beta'
     }
   };
 
