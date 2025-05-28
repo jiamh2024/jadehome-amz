@@ -31,6 +31,7 @@ var locaApiRouter = require('./routes/api/loca');
 var kvApiRouter = require('./routes/api/amz-pkv');
 
 var amzApiRouter = require('./routes/sp-api/amz-api');
+var amzAdsApiRouter = require('./routes/ads-api/ads');
 
 
 var app = express();
@@ -54,6 +55,7 @@ app.use('/api/loca', locaApiRouter);
 app.use('/api/kv', kvApiRouter);
 
 app.use('/api/amzapi', amzApiRouter);
+app.use('/api/amzads', amzAdsApiRouter);
 
 // Web Routes
 app.use('/', indexRouter);
