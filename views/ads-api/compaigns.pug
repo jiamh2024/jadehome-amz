@@ -1,0 +1,55 @@
+extends layout.pug
+
+block content
+  .campaign-container
+    .filters
+      h2 筛选条件
+      form#filterForm
+        .form-group
+          label(for="statusFilter") 状态:
+          select#statusFilter(name="status")
+            option(value="") 全部
+            option(value="enabled") 启用中
+            option(value="paused") 已暂停
+            option(value="archived") 已归档
+        
+        .form-group
+          label(for="nameFilter") 名称包含:
+          input#nameFilter(type="text", name="name", placeholder="输入活动名称")
+        
+        button(type="submit") 筛选
+        button#resetBtn(type="button") 重置
+    
+    .campaign-stats
+      .stat-card
+        h3 总活动数
+        p#totalCampaigns 0
+      .stat-card
+        h3 总预算
+        p#totalBudget $0.00
+      .stat-card
+        h3 平均CTR
+        p#avgCtr 0.00%
+    
+    .campaign-list
+      table
+        thead
+          tr
+            th ID
+            th 名称
+            th 状态
+            th 预算
+            th 开始日期
+            th 预算使用
+            th 操作
+        tbody#campaignTableBody
+          tr
+            td(colspan="7") 正在加载数据...
+      
+      .pagination
+        button#prevPage 上一页
+        span#pageInfo 第 1 页
+        button#nextPage 下一页
+
+block scripts
+  script(src="/compaigns.js")

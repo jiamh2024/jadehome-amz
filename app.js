@@ -21,6 +21,8 @@ var amzRouter = require('./routes/amz-kv');
 var amzFileRouter = require('./routes/amz-file');
 var amzOrder = require('./routes/amz-order');
 
+var signIn = require('./routes/ads-api/signin');
+var compaigns = require('./routes/amz-compaigns');
 
 
 var kanbanApiRouter = require('./routes/api/kanban');
@@ -31,8 +33,7 @@ var locaApiRouter = require('./routes/api/loca');
 var kvApiRouter = require('./routes/api/amz-pkv');
 
 var amzApiRouter = require('./routes/sp-api/amz-api');
-var amzAdsApiRouter = require('./routes/ads-api/ads');
-
+var adsApiRouter = require('./routes/ads-api/ads');
 
 var app = express();
 
@@ -55,7 +56,7 @@ app.use('/api/loca', locaApiRouter);
 app.use('/api/kv', kvApiRouter);
 
 app.use('/api/amzapi', amzApiRouter);
-app.use('/api/amzads', amzAdsApiRouter);
+app.use('/api/adsapi', adsApiRouter);
 
 // Web Routes
 app.use('/', indexRouter);
@@ -75,6 +76,8 @@ app.use('/amzkv', amzRouter);
 app.use('/amzfile', amzFileRouter);
 
 app.use('/amzorder', amzOrder);
+app.use('/signin', signIn);
+app.use('/compaigns', compaigns);
 
 
 // catch 404 and forward to error handler

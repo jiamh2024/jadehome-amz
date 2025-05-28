@@ -1,0 +1,24 @@
+doctype html
+html(lang="zh-CN")
+  head
+    meta(charset="UTF-8")
+    meta(name="viewport", content="width=device-width, initial-scale=1.0")
+    title 广告活动管理
+    link(rel="stylesheet", href="/style.css")
+    script(src="https://cdn.jsdelivr.net/npm/chart.js")
+    script(src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js")
+  body
+    header
+      h1 亚马逊广告管理系统
+      nav
+        a(href="/") 首页
+        a(href="#", class="active") 广告活动
+        a(href="https://www.amazon.com/ap/oa?client_id=amzn1.application-oa2-client.6c3bd22be29d404b919f80993ffe55a3&scope=advertising::campaign_management&response_type=code&redirect_uri=http://127.0.0.1:3000/signin") 获取认证
+    
+    main
+      block content
+    
+    footer
+      p © #{new Date().getFullYear()} 广告管理系统
+
+    block scripts
