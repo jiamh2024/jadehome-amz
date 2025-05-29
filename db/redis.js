@@ -28,7 +28,7 @@ class RedisStorage {
     this.expireAsync = this.client.expire.bind(this.client);
     
     this.client.on('error', (err) => {
-      console.error('Redis error:', err);
+      //console.error('Jadehome Redis error:', err);
     });
 
     try {

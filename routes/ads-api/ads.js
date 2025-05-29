@@ -3,6 +3,7 @@ const router = express.Router();
 const axios = require('axios');
 const qs = require('querystring');
 const redisStorage = require('../../db/redis'); // 引入前面定义的Redis存储模块
+const { body } = require('express-validator');
 
 // 获取访问令牌（使用client credentials方式）
 async function getAccessToken(retryCount = 0) {
@@ -93,7 +94,7 @@ router.get('/campaigns', async (req, res) => {
     //let profileId = 'test'; // 默认值，实际使用时应从Redis或API获取
     const profileId = await getProfileID();
 
-    const apiUrl = `https://advertising-api.amazon.com/v2/campaigns`;
+    //const apiUrl = `https://advertising-api.amazon.com/v2/campaigns`;
     //const { signature, timestamp } = generateSignature(accessToken, apiUrl);
     //console.log('Access Token:', access_token);
     //console.log('Refresh Token:', refresh_token);
@@ -129,4 +130,54 @@ router.get('/campaigns', async (req, res) => {
   }
 });
 
+// 获取广告活动数据
+router.post('/budget', async (req, res) => {
+  try {
+    // 获取当前有效的access token
+    const allToken = await getAccessToken();
+    const { access_token, refresh_token, expires_in } = allToken;
+
+    //let profileId = 'test'; // 默认值，实际使用时应从Redis或API获取
+    const profileId = await getProfileID();
+
+    // 2. 
+    const endpoint = process.env.ADS_ENDPOINT || 'https://advertising-api.amazon.com';
+    const url = `${endpoint}/sp/campaigns/budget/usage`;
+    //const request = {
+    //  method: 'POST',
+    //  url,
+    //  headers: {
+    //    'Amazon-Advertising-API-ClientId': process.env.ADS_API_CLIENT_ID,
+    //    'Amazon-Advertising-API-Scope': profileId[1].profileId, // 使用实际的Profile ID
+    //    'Authorization': `Bearer ${access_token}`,
+    //    'Accept': 'application/vnd.spcampaignbudgetusage.v1+json'
+
+   //   },
+   //   body: JSON.stringify(req.body) // 从请求体获取campaignIds
+   //   //body: req.body // 从请求体获取campaignIds
+
+  //  };
+
+    console.log('Req Body:', req.body);
+    //console.log('Request Body:', request.body);
+
+    //const response = await axios(request);
+    const response = await axios.post(url, req.body, {
+      headers: {
+        'Amazon-Advertising-API-ClientId': process.env.ADS_API_CLIENT_ID,
+        'Amazon-Advertising-API-Scope': profileId[1].profileId, // 使用实际的Profile ID);
+        'Authorization': `Bearer ${access_token}`,
+        'Accept': 'application/vnd.spcampaignbudgetusage.v1+json'
+      }
+    });
+
+    res.json(response.data);
+  } catch (error) {
+    console.error('API request failed:', error.response?.data || error.message);
+    res.status(error.response?.status || 500).json({
+      error: 'Failed to fetch bugget usage',
+      details: error.response?.data || error.message
+    });
+  }
+});
 module.exports = router;
