@@ -63,8 +63,7 @@ document.addEventListener('DOMContentLoaded', async function() {
           const campaign = campaigns.find(c => c.campaignId === budgetInfo.campaignId);
           if (campaign) {
             campaign.budget = campaign.budget || {};
-            campaign.budget.spend = budgetInfo.spend;
-            campaign.budget.usagePercentage = budgetInfo.usagePercentage;
+            campaign.budget.usagePercentage = budgetInfo.budgetUsagePercent;
           }
         });
       }
@@ -99,11 +98,11 @@ document.addEventListener('DOMContentLoaded', async function() {
     elements.totalBudgetEl.textContent = formatCurrency(totalBudget);
     
     // 计算预算使用率（假设API返回了spend数据）
-    //const totalSpend = filteredCampaigns.reduce((sum, campaign) => {
-    //  return sum + (campaign.budget?.spend || 0);
-    //}, 0);
-    //const budgetUsage = totalBudget > 0 ? (totalSpend / totalBudget * 100) : 0;
-    //elements.budgetUsageEl.textContent = `${budgetUsage.toFixed(2)}%`;
+    const totalSpend = filteredCampaigns.reduce((sum, campaign) => {
+      return sum + (campaign.budget.budget * campaign.budget.usagePercentage || 0);
+    }, 0);
+    const budgetUsage = totalBudget > 0 ? (totalSpend / totalBudget) : 0;
+    elements.budgetUsageEl.textContent = `${budgetUsage.toFixed(2)}%`;
     
     // 计算平均CTR
     const avgCtr = filteredCampaigns.length > 0 
