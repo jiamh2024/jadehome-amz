@@ -34,19 +34,21 @@ router.get('/', async (req, res) => {
 
     // 成功获取token（实际生产环境应安全存储）
     const { access_token, refresh_token, expires_in } = tokenResponse.data;
-    
-    res.json({
-      message: 'Authentication successful',
-      access_token: access_token,
-      refresh_token: refresh_token,
-      expires_in: expires_in,
-      scope: scope
-    });
 
     console.log('Successfully obtained access token');
 
     // 将token存储到Redis（假设redisStorage是一个Redis存储实例）
     await redisStorage.storeToken('ads_access_token', { access_token, refresh_token, expires_in }, expires_in);
+
+    //res.json({
+    //  redirect: '/compaigns',
+    //  message: 'Authentication successful',
+    //  access_token: access_token,
+    //  refresh_token: refresh_token,
+    //  expires_in: expires_in,
+    //  scope: scope
+    //});
+    res.redirect('/compaigns'); // 重定向到主页或其他页面
     
   } catch (error) {
     console.error('Token exchange failed:', error.response?.data || error.message);

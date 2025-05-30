@@ -22,7 +22,7 @@ var amzFileRouter = require('./routes/amz-file');
 var amzOrder = require('./routes/amz-order');
 
 var signIn = require('./routes/ads-api/signin');
-var compaigns = require('./routes/amz-compaigns');
+var campaigns = require('./routes/amz-campaigns');
 
 
 var kanbanApiRouter = require('./routes/api/kanban');
@@ -77,7 +77,7 @@ app.use('/amzfile', amzFileRouter);
 
 app.use('/amzorder', amzOrder);
 app.use('/signin', signIn);
-app.use('/compaigns', compaigns);
+app.use('/campaigns', campaigns);
 
 
 // catch 404 and forward to error handler
