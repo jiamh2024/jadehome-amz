@@ -9,6 +9,7 @@ var debug = require('debug')('jadehome:server');
 var https = require('https');
 var fs = require('fs');
 
+console.log('Env: ' + process.env);
 console.log('Private key: ' + process.env.PRIVATE_KEY);
 console.log('Certificate: ' + process.env.CERTIFICATE);
 
