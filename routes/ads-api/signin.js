@@ -16,12 +16,17 @@ router.get('/', async (req, res) => {
 
   try {
     // 用授权码交换access token
+    console.log('Exchanging authorization code for access token...');
+    console.log('Authorization code:', code); 
+    console.log('Scope:', scope);
+    console.log('Redirect URI:', process.env.ADS_SIGNIN_URL);
+
     const tokenResponse = await axios.post(
       'https://api.amazon.com/auth/o2/token',
       qs.stringify({
         grant_type: 'authorization_code',
         code: code,
-        redirect_uri: 'http://127.0.0.1:3000/signin', // 必须与请求时一致
+        redirect_uri: process.env.ADS_SIGNIN_URL, // 必须与请求时一致
         client_id: process.env.ADS_API_CLIENT_ID,
         client_secret: process.env.ADS_API_CLIENT_SECRET
       }),
@@ -48,7 +53,7 @@ router.get('/', async (req, res) => {
     //  expires_in: expires_in,
     //  scope: scope
     //});
-    res.redirect('/compaigns'); // 重定向到主页或其他页面
+    res.redirect(process.env.ADS_RETURN_URL); // 重定向到主页或其他页面
     
   } catch (error) {
     console.error('Token exchange failed:', error.response?.data || error.message);

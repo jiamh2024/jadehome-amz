@@ -224,7 +224,7 @@ function getTodayTimeRange() {
   const endDate = new Date(today);
   endDate.setHours(23, 59, 59, 999);
 
-  today.setDate(today.getDate()-3);
+  today.setDate(today.getDate()-1);
   const startDate = new Date(today);
   startDate.setHours(0, 0, 0, 0);
   
