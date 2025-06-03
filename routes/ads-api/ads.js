@@ -1,10 +1,18 @@
 const express = require('express');
 const router = express.Router();
 const axios = require('axios');
-const qs = require('querystring');
-const redisStorage = require('../../db/redis'); // 引入前面定义的Redis存储模块
-const { body } = require('express-validator');
+const { body, validationResult } = require('express-validator');
+const _ = require('lodash');
+const redisStorage = require('../../db/redis');
 
+// 国家配置
+const SUPPORTED_COUNTRIES = [
+  { code: 'US', name: '美国', endpoint: 'https://advertising-api.amazon.com' },
+  { code: 'CA', name: '加拿大', endpoint: 'https://advertising-api.amazon.com' },
+  { code: 'UK', name: '英国', endpoint: 'https://advertising-api-eu.amazon.com' },
+  { code: 'AE', name: '阿联酋', endpoint: 'https://advertising-api-eu.amazon.com' },
+  { code: 'SA', name: '沙特', endpoint: 'https://advertising-api-eu.amazon.com' }
+];
 // 获取访问令牌（使用client credentials方式）
 async function getAccessToken(retryCount = 0) {
   const MAX_RETRIES = 3;
@@ -25,159 +33,265 @@ async function getAccessToken(retryCount = 0) {
   }
 }
 
-// 生成API签名
-function generateSignature(accessToken, request) {
-  const timestamp = Math.floor(Date.now() / 1000);
-  const signature = crypto.createHmac('sha256', process.env.ADS_CLIENT_SECRET)
-    .update(`${accessToken}\n${timestamp}\n${request}`)
-    .digest('base64');
-  return { signature, timestamp };
-}
-
-// 获取Profile ID, 用于确定是哪个市场
-async function getProfileID(retryCount = 0) {
-  const MAX_RETRIES = 3;
-  const RETRY_DELAY = 1000; // 1秒重试间隔
-  
-  
-  const cachedProfile = await redisStorage.getToken(`ads_profile`);
-  if (cachedProfile) {
-    console.log('Using cached profile:', cachedProfile);
-    return cachedProfile;
-  }
-
-  // 如果Redis中没有，调用API获取
-  console.log('geting new profile...');
-  try {
-    // 2. 如果Redis中没有，调用API获取
-    const allToken = await getAccessToken();
-    const { access_token, refresh_token, expires_in } = allToken;
-    //console.log('01 Access Token:', access_token);
-
-    const endpoint = process.env.ADS_PROFILE_ENDPOINT || 'https://advertising-api.amazon.com/v2/profiles';
-    const url = `${endpoint}`;
-    const request = {
-      method: 'GET',
-      url,
-      headers: {
-        'Amazon-Advertising-API-ClientId': process.env.ADS_API_CLIENT_ID,
-        Authorization: `Bearer ${access_token}`
-      }
-    };
-
-    const profileId = await axios(request);
-    // 假设返回的profileId是一个数组，取第一个
-    console.log('Successfully obtained Profile ID:', profileId.data[0].profileId);
-
-    // 将token存储到Redis（假设redisStorage是一个Redis存储实例）
-    await redisStorage.storeToken('ads_profile', profileId.data, 0);
-    
-    // 这里可以继续调用广告API或处理业务逻辑
-  } catch (error) {
-    console.error('Token exchange failed:', error.response?.data || error.message);
-    res.status(500).json({
-      error: 'Failed to exchange authorization code',
-      details: error.response?.data || error.message
-    });
-  }
-
-}
-
-
-// 获取广告活动数据
+// 获取1个国家的广告活动数据
 router.get('/campaigns', async (req, res) => {
   try {
+    // 0. 获取国家参数
+    const { country } = req.query;
+    if (!country) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'No country supplied!' 
+      });
+    }
+    // 1. 获取所有国家的Profile ID
+    const countryProfiles = await getCountryProfiles();
+    // 查找匹配的国家Profile
+    const profile = countryProfiles.find(profile => 
+      profile.countryCode === country.toUpperCase()
+    );
+
+    const {profileId, endpoint, countryCode} = profile;
+    
+    // 2. 获取该国家的广告活动
+    try {
+      const campaigns = await fetchCampaignsForCountry(profileId, endpoint);
+      res.json(campaigns);
+
+    } catch (error) {
+      console.error(`Failed to fetch campaigns for ${countryCode}:`, error);
+      return { countryCode, campaigns: [], error: error.message };
+    }
+    
+  } catch (error) {
+    console.error('Failed to fetch campaigns of your country:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch campaigns of your country!',
+      details: error.message
+    });
+  }
+});
+
+// 获取所有国家的广告活动数据
+router.get('/campaigns/all', async (req, res) => {
+  try {
+    // 1. 获取所有国家的Profile ID
+    const countryProfiles = await getCountryProfiles();
+    
+    // 2. 并行获取所有国家的广告活动
+    const campaignsByCountry = await Promise.all(
+      countryProfiles.map(async ({ countryCode, profileId, endpoint }) => {
+        try {
+          const campaigns = await fetchCampaignsForCountry(profileId, endpoint);
+          return { countryCode, campaigns };
+        } catch (error) {
+          console.error(`Failed to fetch campaigns for ${countryCode}:`, error);
+          return { countryCode, campaigns: [], error: error.message };
+        }
+      })
+    );
+    
+    // 3. 组织响应数据
+    const result = {
+      success: true,
+      data: _.keyBy(campaignsByCountry, 'countryCode'),
+      timestamp: new Date().toISOString()
+    };
+    
+    res.json(result);
+  } catch (error) {
+    console.error('Failed to fetch multi-country campaigns:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch multi-country campaigns',
+      details: error.message
+    });
+  }
+});
+
+// 获取所有国家的Profile ID
+async function getCountryProfiles() {
+  // 尝试从缓存获取
+  const cachedProfiles = await redisStorage.getToken('country_profiles');
+  if (cachedProfiles) return cachedProfiles;
+  
+  // 2. 如果Redis中没有，调用API获取
+  const allToken = await getAccessToken();
+  const { access_token, refresh_token, expires_in } = allToken;
+  const endpoint1 = SUPPORTED_COUNTRIES[0].endpoint; // NA
+  const endpoint2 = SUPPORTED_COUNTRIES[2].endpoint; // EU
+  const response1 = await axios.get(
+    `${endpoint1}/v2/profiles`,
+    {
+      headers: {
+        'Amazon-Advertising-API-ClientId': process.env.ADS_API_CLIENT_ID,
+        'Authorization': `Bearer ${access_token}`
+      }
+    }
+  );
+  const response2 = await axios.get(
+    `${endpoint2}/v2/profiles`,
+    {
+      headers: {
+        'Amazon-Advertising-API-ClientId': process.env.ADS_API_CLIENT_ID,
+        'Authorization': `Bearer ${access_token}`
+      }
+    }
+  );
+  
+  // 合并两个响应的数据
+  const allProfiles = [...response1.data, ...response2.data];
+  // 过滤出我们需要的国家
+  const countryProfiles = allProfiles
+    .filter(profile => SUPPORTED_COUNTRIES.some(c => c.code === profile.countryCode))
+    .map(profile => {
+      const countryConfig = SUPPORTED_COUNTRIES.find(c => c.code === profile.countryCode);
+      return {
+        countryCode: profile.countryCode,
+        profileId: profile.profileId,
+        endpoint: countryConfig.endpoint
+      };
+    });
+  
+  // 存储到缓存
+  await redisStorage.storeToken('country_profiles', countryProfiles, 360000); // 缓存100小时
+  
+  return countryProfiles;
+}
+
+// 获取单个国家的广告活动
+async function fetchCampaignsForCountry(profileId, endpoint) {
     // 获取当前有效的access token
     const allToken = await getAccessToken();
     const { access_token, refresh_token, expires_in } = allToken;
-
-    //let profileId = 'test'; // 默认值，实际使用时应从Redis或API获取
-    const profileId = await getProfileID();
-
-    //const apiUrl = `https://advertising-api.amazon.com/v2/campaigns`;
-    //const { signature, timestamp } = generateSignature(accessToken, apiUrl);
-    //console.log('Access Token:', access_token);
-    //console.log('Refresh Token:', refresh_token);
-    //console.log('Expires In:', expires_in);
-    //console.log('Profile ID:', profileId);
-
-
-    // 2. 
-    const endpoint = process.env.ADS_ENDPOINT || 'https://advertising-api.amazon.com';
-    const url = `${endpoint}/sp/campaigns/list`;
-    const request = {
-      method: 'POST',
-      url,
+  
+  const response = await axios.post(
+    `${endpoint}/sp/campaigns/list`,
+    {}, // 可以根据需要添加请求体
+    {
       headers: {
         'Amazon-Advertising-API-ClientId': process.env.ADS_API_CLIENT_ID,
-        'Amazon-Advertising-API-Scope': profileId[1].profileId, // 使用实际的Profile ID
+        'Amazon-Advertising-API-Scope': profileId,
         'Authorization': `Bearer ${access_token}`,
         'Content-Type': 'application/vnd.spCampaign.v3+json',
         'Accept': 'application/vnd.spCampaign.v3+json'
+      },
+      timeout: 10000
+    }
+  );
+  
+  return response.data;
+}
 
-      }
-    };
-
-    const response = await axios(request);
-
-    res.json(response.data);
-  } catch (error) {
-    console.error('API request failed:', error.response?.data || error.message);
-    res.status(error.response?.status || 500).json({
-      error: 'Failed to fetch campaigns',
-      details: error.response?.data || error.message
+// 获取某个国家的预算使用情况
+router.post('/budget', [
+  body().isObject().custom(value => {
+    // 验证每个国家的campaignIds数组
+    return Object.values(value).every(ids => Array.isArray(ids) && ids.every(id => typeof id === 'string'));
+  })
+], async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ 
+      success: false, 
+      errors: errors.array() 
     });
   }
-});
-
-// 获取广告活动数据
-router.post('/budget', async (req, res) => {
+  
   try {
-    // 获取当前有效的access token
-    const allToken = await getAccessToken();
-    const { access_token, refresh_token, expires_in } = allToken;
-
-    //let profileId = 'test'; // 默认值，实际使用时应从Redis或API获取
-    const profileId = await getProfileID();
-
-    // 2. 
-    const endpoint = process.env.ADS_ENDPOINT || 'https://advertising-api.amazon.com';
-    const url = `${endpoint}/sp/campaigns/budget/usage`;
-    //const request = {
-    //  method: 'POST',
-    //  url,
-    //  headers: {
-    //    'Amazon-Advertising-API-ClientId': process.env.ADS_API_CLIENT_ID,
-    //    'Amazon-Advertising-API-Scope': profileId[1].profileId, // 使用实际的Profile ID
-    //    'Authorization': `Bearer ${access_token}`,
-    //    'Accept': 'application/vnd.spcampaignbudgetusage.v1+json'
-
-   //   },
-   //   body: JSON.stringify(req.body) // 从请求体获取campaignIds
-   //   //body: req.body // 从请求体获取campaignIds
-
-  //  };
-
-    console.log('Req Body:', req.body);
-    //console.log('Request Body:', request.body);
-
-    //const response = await axios(request);
-    const response = await axios.post(url, req.body, {
-      headers: {
-        'Amazon-Advertising-API-ClientId': process.env.ADS_API_CLIENT_ID,
-        'Amazon-Advertising-API-Scope': profileId[1].profileId, // 使用实际的Profile ID);
-        'Authorization': `Bearer ${access_token}`,
-        'Accept': 'application/vnd.spcampaignbudgetusage.v1+json'
+    // 1. 获取所有国家的Profile ID
+    const countryProfiles = await getCountryProfiles();
+    
+    // 2. 组织请求数据
+    const requests = countryProfiles.map(async ({ countryCode, profileId, endpoint }) => {
+      const campaignIds = req.body[countryCode] || [];
+      if (campaignIds.length === 0) {
+        return Promise.resolve({ countryCode, data: [] });
+      }
+      
+      try {
+        const data = await fetchBudgetUsageForCountry(profileId, endpoint, campaignIds);
+        return ({ countryCode, data });
+      } catch (error) {
+        console.error(`Failed to fetch budget for ${countryCode}:`, error);
+        return { countryCode, data: [], error: error.message };
       }
     });
-
-    res.json(response.data);
+    
+    // 3. 并行执行所有请求
+    const results = await Promise.all(requests);
+    res.json(results.data);
   } catch (error) {
-    console.error('API request failed:', error.response?.data || error.message);
-    res.status(error.response?.status || 500).json({
-      error: 'Failed to fetch bugget usage',
-      details: error.response?.data || error.message
+    console.error('Failed to fetch multi-country budget usage:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch multi-country budget usage',
+      details: error.message
     });
   }
 });
+
+// 获取所有国家的预算使用情况
+router.post('/budget/all', async (req, res) => {
+  
+  try {
+    // 1. 获取所有国家的Profile ID
+    const countryProfiles = await getCountryProfiles();
+    
+    // 2. 组织请求数据
+    const allbudgets = await Promise.all(
+      countryProfiles.map(async ({ countryCode, profileId, endpoint }) => {
+        //try {
+          const data = await fetchBudgetUsageForCountry(profileId, endpoint, req.body);
+          return ({ countryCode, data });
+       // } catch (error) {
+       //   console.error(`Failed to fetch budget for ${countryCode}:`, error);
+       //   return { countryCode, data: [], error: error.message };
+       // }
+      })
+    );
+    
+    // 3. 组织响应数据
+    res.json(allbudgets.data);
+  } catch (error) {
+    console.error('Failed to fetch multi-country budget usage:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch multi-country budget usage',
+      details: error.message
+    });
+  }
+});
+
+// 获取单个国家的预算使用情况
+async function fetchBudgetUsageForCountry(profileId, endpoint, cbody) {
+  try {
+    const { access_token } = await getAccessToken();
+    
+    console.log('Request Body:', cbody);
+    console.log('Profile ID:', profileId);
+    console.log('Endpoint:', endpoint);
+
+    const response = await axios.post(
+      `${endpoint}/sp/campaigns/budget/usage`,
+      cbody,
+      {
+        headers: {
+          'Amazon-Advertising-API-ClientId': process.env.ADS_API_CLIENT_ID,
+          'Amazon-Advertising-API-Scope': profileId,
+          'Authorization': `Bearer ${access_token}`,
+          'Accept': 'application/vnd.spcampaignbudgetusage.v1+json'
+        },
+        timeout: 10000
+      }
+    );
+    
+    return response.data;
+  } catch (error) {
+    //console.error(`Failed to fetch budget usage for ${profileId}:`, error);
+    //throw new Error(`Failed to fetch budget usage for ${profileId}: ${error.message}`);
+  }
+}
+
 module.exports = router;

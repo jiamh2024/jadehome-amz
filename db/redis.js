@@ -44,7 +44,7 @@ class RedisStorage {
   async storeToken(key, tokenData, ttl) {
     try {
 
-      console.log('Storing token in Redis:', key, tokenData);
+      //console.log('Storing token in Redis:', key, tokenData);
       await this.setAsync(`amazon:${key}`, JSON.stringify(tokenData));
       if (ttl) {
         await this.expireAsync(`amazon:${key}`, ttl);
@@ -58,9 +58,9 @@ class RedisStorage {
 
   async getToken(key) {
     try {
-      console.log(`Retrieving ${key} from Redis:`, key);
+      //console.log(`Retrieving ${key} from Redis:`, key);
       const data = await this.getAsync(`amazon:${key}`);
-      console.log(`Retrieved ${key} from Redis:`, JSON.parse(data));
+      //console.log(`Retrieved ${key} from Redis:`, JSON.parse(data));
       return data ? JSON.parse(data) : null;
     } catch (err) {
       console.error('Failed to get token:', err);
