@@ -53,7 +53,7 @@ router.get('/', async (req, res) => {
     //  expires_in: expires_in,
     //  scope: scope
     //});
-    res.redirect(process.env.ADS_RETURN_URL); // 重定向到主页或其他页面
+    res.redirect('/campaigns'); // 重定向到主页或其他页面
     
   } catch (error) {
     console.error('Token exchange failed:', error.response?.data || error.message);
