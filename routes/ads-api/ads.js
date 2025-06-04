@@ -185,7 +185,7 @@ async function fetchCampaignsForCountry(profileId, endpoint) {
 }
 
 // 获取某个国家的预算使用情况
-router.post('/budget', [
+router.post('/budget/v0', [
   body().isObject().custom(value => {
     // 验证每个国家的campaignIds数组
     return Object.values(value).every(ids => Array.isArray(ids) && ids.every(id => typeof id === 'string'));
@@ -223,59 +223,36 @@ router.post('/budget', [
     const results = await Promise.all(requests);
     res.json(results.data);
   } catch (error) {
-    console.error('Failed to fetch multi-country budget usage:', error);
+    console.error('Failed to fetch your budget usage:', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to fetch multi-country budget usage',
+      error: 'Failed to fetch your budget usage',
       details: error.message
     });
   }
 });
 
 // 获取所有国家的预算使用情况
-router.post('/budget/all', async (req, res) => {
+router.post('/budget', async (req, res) => {
   
   try {
+    // 0. 获取国家参数
+    const { country } = req.query;
+    if (!country) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'No country supplied!' 
+      });
+    }
+
     // 1. 获取所有国家的Profile ID
     const countryProfiles = await getCountryProfiles();
-    
-    // 2. 组织请求数据
-    const allbudgets = await Promise.all(
-      countryProfiles.map(async ({ countryCode, profileId, endpoint }) => {
-        //try {
-          const data = await fetchBudgetUsageForCountry(profileId, endpoint, req.body);
-          return ({ countryCode, data });
-       // } catch (error) {
-       //   console.error(`Failed to fetch budget for ${countryCode}:`, error);
-       //   return { countryCode, data: [], error: error.message };
-       // }
-      })
-    );
-    
-    // 3. 组织响应数据
-    res.json(allbudgets.data);
-  } catch (error) {
-    console.error('Failed to fetch multi-country budget usage:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch multi-country budget usage',
-      details: error.message
-    });
-  }
-});
-
-// 获取单个国家的预算使用情况
-async function fetchBudgetUsageForCountry(profileId, endpoint, cbody) {
-  try {
+    const { profileId, endpoint } = countryProfiles.find(profile => profile.countryCode === country.toUpperCase());
     const { access_token } = await getAccessToken();
     
-    console.log('Request Body:', cbody);
-    console.log('Profile ID:', profileId);
-    console.log('Endpoint:', endpoint);
-
     const response = await axios.post(
       `${endpoint}/sp/campaigns/budget/usage`,
-      cbody,
+      req.body,
       {
         headers: {
           'Amazon-Advertising-API-ClientId': process.env.ADS_API_CLIENT_ID,
@@ -287,11 +264,17 @@ async function fetchBudgetUsageForCountry(profileId, endpoint, cbody) {
       }
     );
     
-    return response.data;
+    // 3. 组织响应数据
+    res.json(response.data);
   } catch (error) {
-    //console.error(`Failed to fetch budget usage for ${profileId}:`, error);
-    //throw new Error(`Failed to fetch budget usage for ${profileId}: ${error.message}`);
+    console.error('Failed to fetch multi-country budget usage:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch multi-country budget usage',
+      details: error.message
+    });
   }
-}
+});
+
 
 module.exports = router;

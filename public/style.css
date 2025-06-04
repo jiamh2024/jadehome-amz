@@ -45,6 +45,14 @@ header nav a.active {
   border-radius: 4px;
 }
 
+#filterForm
+  {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    align-items: center;
+  }
+
 .form-group {
   margin-bottom: 1rem;
   display: inline-block;

@@ -20,7 +20,7 @@ block content
             label(for="statusFilter") 状态:
             select#statusFilter(name="status")
               option(value="") 全部
-              option(value="enabled") 启用中
+              option(value="enabled" selected) 启用中
               option(value="paused") 已暂停
               option(value="archived") 已归档
           
@@ -29,62 +29,7 @@ block content
             input#nameFilter(type="text", name="name", placeholder="输入活动名称")
         
         .form-actions
-          button.btn-primary(type="submit") 筛选
           button.btn-secondary#resetBtn(type="button") 重置
-    
-    .country-stats#countryStats
-      h3 国家统计概览
-      .stats-grid
-        .stat-card.country-stat(data-country="US")
-          h4 美国
-          .stat-content
-            p 活动数: 
-              span.stat-value 0
-            p 总预算: 
-              span.stat-value $0.00
-            p 预算使用率: 
-              span.stat-value 0.00%
-        
-        .stat-card.country-stat(data-country="CA")
-          h4 加拿大
-          .stat-content
-            p 活动数: 
-              span.stat-value 0
-            p 总预算: 
-              span.stat-value $0.00
-            p 预算使用率: 
-              span.stat-value 0.00%
-
-        .stat-card.country-stat(data-country="CA")
-          h4 英国
-          .stat-content
-            p 活动数: 
-              span.stat-value 0
-            p 总预算: 
-              span.stat-value $0.00
-            p 预算使用率: 
-              span.stat-value 0.00%
-        
-        .stat-card.country-stat(data-country="CA")
-          h4 阿联酋
-          .stat-content
-            p 活动数: 
-              span.stat-value 0
-            p 总预算: 
-              span.stat-value $0.00
-            p 预算使用率: 
-              span.stat-value 0.00%
-
-        .stat-card.country-stat(data-country="CA")
-          h4 沙特
-          .stat-content
-            p 活动数: 
-              span.stat-value 0
-            p 总预算: 
-              span.stat-value $0.00
-            p 预算使用率: 
-              span.stat-value 0.00%
-        //- 其他国家的统计卡片...
     
     .campaign-stats
       .stat-card

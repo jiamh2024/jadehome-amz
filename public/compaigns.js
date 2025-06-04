@@ -33,7 +33,7 @@ document.addEventListener('DOMContentLoaded', async function() {
   await loadAllCampaigns();
 
   // 事件监听
-  elements.filterForm.addEventListener('submit', handleFilterSubmit);
+  elements.filterForm.addEventListener('change', handleFilterSubmit);
   elements.resetBtn.addEventListener('click', handleReset);
   elements.prevPageBtn.addEventListener('click', goToPrevPage);
   elements.nextPageBtn.addEventListener('click', goToNextPage);
@@ -71,7 +71,7 @@ document.addEventListener('DOMContentLoaded', async function() {
   // 更新整个仪表板
   function updateDashboard(campaigns) {
     updateStats(campaigns);
-    renderCampaignRow(campaigns);
+    renderCampaignTable(campaigns);
     updatePagination();
   }
 
@@ -106,7 +106,7 @@ function groupCampaignsByCountry(campaigns) {
     const { totalBudget, totalSpend, totalCtr } = filteredCampaigns.reduce(
       (acc, campaign) => {
         const budget = campaign.budget?.budget || 0;
-        const spend = budget * campaign.budget?.usagePercent || 0;
+        const spend = budget * (campaign.budget?.usagePercentage || 0) / 100;
         
         return {
           totalBudget: acc.totalBudget + budget,
@@ -132,36 +132,6 @@ function groupCampaignsByCountry(campaigns) {
       : 0;
     elements.avgCtrEl.textContent = `${avgCtr.toFixed(2)}%`;
     
-    // 2. 更新各国统计信息
-    const campaignsByCountry = groupCampaignsByCountry(filteredCampaigns);
-    
-    // 对每个国家更新统计信息
-    const countries = ['US', 'CA', 'UK', 'AE', 'SA']; // 美国、加拿大、英国、阿联酋、沙特
-    
-    countries.forEach(countryCode => {
-      const countryData = campaignsByCountry[countryCode] || { campaigns: [], totalBudget: 0, totalSpend: 0 };
-      const countryName = getCountryName(countryCode); // 获取国家名称的辅助函数
-      
-      // 获取该国家的统计卡片元素
-      const countryStatEl = document.querySelector(`.country-stat[data-country="${countryCode}"]`);
-      
-      if (countryStatEl) {
-        // 更新活动数
-        const campaignCountEl = countryStatEl.querySelector('.stat-content p:nth-child(1) span.stat-value');
-        campaignCountEl.textContent = countryData.campaigns.length;
-        
-        // 更新总预算
-        const totalBudgetEl = countryStatEl.querySelector('.stat-content p:nth-child(2) span.stat-value');
-        totalBudgetEl.textContent = formatCurrency(countryData.totalBudget);
-        
-        // 更新预算使用率
-        const budgetUsageEl = countryStatEl.querySelector('.stat-content p:nth-child(3) span.stat-value');
-        const countryBudgetUsage = countryData.totalBudget > 0 
-          ? (countryData.totalSpend / countryData.totalBudget) * 100 
-          : 0;
-        budgetUsageEl.textContent = `${countryBudgetUsage.toFixed(2)}%`;
-      }
-    });
   }
 
   // 辅助函数：根据国家代码获取国家名称
@@ -203,18 +173,17 @@ function groupCampaignsByCountry(campaigns) {
       for (const [countryCode, countryCampaigns] of Object.entries(byCountry)) {
         const campaignIds = countryCampaigns.map(c => c.campaignId);
         
-        const budgetResponse = await axios.post('/api/adsapi/budget/all', {
+        const budgetResponse = await axios.post(`/api/adsapi/budget?country=${countryCode}`, {
           campaignIds: campaignIds
         });
         
         // 更新预算数据
-        budgetResponse.data.forEach(budget => {
+        budgetResponse.data.success.forEach(budget => {
           const campaign = countryCampaigns.find(c => c.campaignId === budget.campaignId);
           if (campaign) {
             campaign.budget = {
               ...campaign.budget,
-              spend: budget.spend,
-              usagePercentage: budget.usagePercentage
+              usagePercentage: budget.budgetUsagePercent
             };
           }
         });
@@ -269,41 +238,32 @@ function groupCampaignsByCountry(campaigns) {
    * @param {Array} campaigns - 当前页的活动数据
    */
   function updatePagination(campaigns) {
-    // 这里应该是你的分页逻辑
-    // 假设你有总活动数和每页显示数量的信息
+
+    const filteredCampaigns = filterCampaigns(allCampaigns);
+    const totalPages = Math.ceil(filteredCampaigns.length / PAGE_SIZE);
+    const startItem = (currentPage - 1) * PAGE_SIZE + 1;
+    const endItem = Math.min(currentPage * PAGE_SIZE, filteredCampaigns.length);
     
-    // 示例：这里只是简单演示，你需要根据你的实际分页逻辑来实现
-    const totalCampaigns = 100; // 假设总共有100个活动
-    const itemsPerPage = 10;    // 每页显示10个活动
-    const currentPage = 1;      // 假设当前是第1页
-    
-    // 计算分页信息
-    const totalPages = Math.ceil(totalCampaigns / itemsPerPage);
-    const startItem = (currentPage - 1) * itemsPerPage + 1;
-    const endItem = Math.min(currentPage * itemsPerPage, totalCampaigns);
-    
-    // 更新分页信息显示
-    document.getElementById('pageInfo').textContent = `显示 ${startItem}-${endItem} 条，共 ${totalCampaigns} 条`;
-    
-    // 更新分页按钮状态
-    const prevPageBtn = document.getElementById('prevPage');
-    const nextPageBtn = document.getElementById('nextPage');
-    
-    prevPageBtn.disabled = currentPage === 1;
-    nextPageBtn.disabled = currentPage === totalPages;
+    elements.pageInfo.textContent = `显示 ${startItem}-${endItem} 条，共 ${filteredCampaigns.length} 条`;
+    elements.prevPageBtn.disabled = currentPage === 1;
+    elements.nextPageBtn.disabled = currentPage === totalPages || totalPages === 0;
+
   }
   
   // [其余函数保持不变，添加国家筛选逻辑]
   function filterCampaigns(campaigns) {
     const formData = new FormData(elements.filterForm);
     const countryFilter = formData.get('country');
-    // ...其他筛选条件
-    
+    const statusFilter = formData.get('status');
+
     return campaigns.filter(campaign => {
       if (countryFilter && campaign.countryCode !== countryFilter) {
         return false;
       }
       // ...其他筛选条件
+      if (statusFilter && campaign.state.toLowerCase() !== statusFilter) {
+        return false;
+      }
       return true;
     });
   }
@@ -342,43 +302,31 @@ function groupCampaignsByCountry(campaigns) {
    * @param {Array} campaigns - 活动数据数组
    */
   function renderCampaignTable(campaigns) {
-    
+    const filteredCampaigns = filterCampaigns(campaigns);
+    const paginatedCampaigns = paginate(filteredCampaigns, currentPage, PAGE_SIZE);
+
     // 如果没有活动数据，显示加载提示或空状态
-    if (!campaigns || campaigns.length === 0) {
-      tableBodyEl.innerHTML = '<tr><td colspan="9" class="no-data">没有找到符合条件的活动</td></tr>';
+    if (paginatedCampaigns.length === 0) {
+      elements.tableBody.innerHTML = `<tr><td colspan="7" class="no-data">没有找到匹配的广告活动</td></tr>`;
       return;
     }
     
     // 清空表格体
-    tableBodyEl.innerHTML = '';
-    
-    // 渲染每一行数据
-    campaigns.forEach(campaign => {
-      const rowHtml = renderCampaignRow(campaign);
-      tableBodyEl.insertAdjacentHTML('beforeend', rowHtml);
-    });
-    
-    // 更新分页信息（假设有一个updatePagination函数）
-    updatePagination(campaigns);
-  }
+    elements.tableBody.innerHTML = '';
 
-
-  // [渲染表格时添加国家列]
-  //${campaign.countryCode.toLowerCase()} ${campaign.state.toLowerCase()}
-  function renderCampaignRow(campaign) {
-    return `
+    elements.tableBody.innerHTML = paginatedCampaigns.map(campaign => `
       <tr>
         <td>${campaign.campaignId}</td>
         <td>${campaign.name}</td>
         <td><span class="country-badge ${campaign.countryCode}">${campaign.countryName}</span></td>
-        <td class="status-${campaign.state}">${getStatusText(campaign.state)}</td>
+        <td class="status-${campaign.state.toLowerCase()}">${getStatusText(campaign.state)}</td>
         <td>${formatCurrency(campaign.budget?.budget)}</td>
         <td>${formatDate(campaign.startDate)}</td>
         <td>
           <div class="budget-usage-container">
             <div class="budget-usage-bar" 
-                 style="width: ${campaign.budget?.usagePercentage || 0}%"
-                 title="${campaign.countryName} | 已花费: ${formatCurrency(campaign.budget?.spend)} / 总预算: ${formatCurrency(campaign.budget?.budget)}">
+                  style="width: ${campaign.budget?.usagePercentage || 0}%"
+                  title="已花费: ${formatCurrency(campaign.budget?.spend)} / 总预算: ${formatCurrency(campaign.budget?.budget)}">
             </div>
             <span class="budget-usage-text">${campaign.budget?.usagePercentage || 0}%</span>
           </div>
@@ -387,7 +335,50 @@ function groupCampaignsByCountry(campaigns) {
           <button class="btn-view" data-id="${campaign.campaignId}" data-country="${campaign.countryCode}">查看</button>
         </td>
       </tr>
-    `;
+    `).join('');
+
+    
+    // 更新分页信息（假设有一个updatePagination函数）
+    updatePagination(filteredCampaigns);
+    // 添加按钮事件
+    addButtonEventListeners();
+  }
+
+  function addButtonEventListeners() {
+    // 查看按钮
+    document.querySelectorAll('.btn-view').forEach(btn => {
+      btn.addEventListener('click', function() {
+        const campaignId = this.getAttribute('data-id');
+        viewCampaignDetails(campaignId);
+      });
+    });
+    
+    // 编辑按钮
+    document.querySelectorAll('.btn-edit').forEach(btn => {
+      btn.addEventListener('click', function() {
+        const campaignId = this.getAttribute('data-id');
+        editCampaign(campaignId);
+      });
+    });
+  }
+
+
+  // 查看详情
+  function viewCampaignDetails(campaignId) {
+    // 实际项目中可以打开模态框或跳转详情页
+    console.log('查看广告活动:', campaignId);
+    window.location.href = `/campaigns/${campaignId}`;
+  }
+
+  // 编辑活动
+  function editCampaign(campaignId) {
+    console.log('编辑广告活动:', campaignId);
+    window.location.href = `/campaigns/${campaignId}/edit`;
+  }
+
+  // 分页逻辑
+  function paginate(array, page, size) {
+    return array.slice((page - 1) * size, page * size);
   }
 
    // 辅助函数
@@ -437,6 +428,14 @@ function groupCampaignsByCountry(campaigns) {
       </td>
     </tr>
   `;
+  }
+  function getStatusText(status) {
+    const statusMap = {
+      'enabled': '启用中',
+      'paused': '已暂停',
+      'archived': '已归档'
+    };
+    return statusMap[status.toLowerCase()] || status;
   }
 
 });
