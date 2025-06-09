@@ -9,7 +9,10 @@ var usersRouter = require('./routes/users');
 var kanbanAddRouter = require('./routes/kb-add');
 var kanbanListRouter = require('./routes/kb-ls');
 var skuListRouter = require('./routes/sku-ls');
+var spuListRouter = require('./routes/spu-ls');
 var skuAddRouter = require('./routes/sku-add');
+var spuAddRouter = require('./routes/spu-add');
+var spuskuAddRouter = require('./routes/spu-sku');
 var skuEditRouter = require('./routes/sku-edit');
 var countryAddRouter = require('./routes/cnty-add');
 var countryListRouter = require('./routes/cnty-ls');
@@ -27,6 +30,7 @@ var campaigns = require('./routes/amz-campaigns');
 
 var kanbanApiRouter = require('./routes/api/kanban');
 var skuApiRouter = require('./routes/api/sku');
+var spuApiRouter = require('./routes/api/spu');
 var countryApiRouter = require('./routes/api/country');
 var cpApiRouter = require('./routes/api/cp');
 var locaApiRouter = require('./routes/api/loca');
@@ -49,6 +53,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 //API Routes
 app.use('/api/sku', skuApiRouter);
+app.use('/api/spu', spuApiRouter);
 app.use('/api/kanban', kanbanApiRouter);
 app.use('/api/country', countryApiRouter);
 app.use('/api/cp', cpApiRouter);
@@ -64,8 +69,11 @@ app.use('/users', usersRouter);
 app.use('/kbadd', kanbanAddRouter);
 app.use('/kbls', kanbanListRouter);
 app.use('/skuadd', skuAddRouter);
+app.use('/spuadd', spuAddRouter);
+app.use('/spusku', spuskuAddRouter);
 app.use('/skuedit', skuEditRouter);
 app.use('/skuls', skuListRouter);
+app.use('/spuls', spuListRouter);
 app.use('/cntyadd', countryAddRouter);
 app.use('/cntyls', countryListRouter);
 app.use('/cpadd', cpAddRouter);

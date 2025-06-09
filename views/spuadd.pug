@@ -1,0 +1,130 @@
+doctype html
+html(lang='en')
+  head
+    meta(charset='UTF-8')
+    meta(name='viewport', content='width=device-width, initial-scale=1.0')
+    title Create Product SPU
+    script(src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js")
+    style.
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+      .form-group {
+        margin-bottom: 15px;
+      }
+      label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: bold;
+      }
+      input, textarea {
+        width: 100%;
+        padding: 8px;
+        box-sizing: border-box;
+      }
+      button {
+        background-color: #4CAF50;
+        color: white;
+        padding: 10px 15px;
+        border: none;
+        cursor: pointer;
+      }
+      button:hover {
+        background-color: #45a049;
+      }
+      .message {
+        margin-top: 15px;
+        padding: 10px;
+        border-radius: 4px;
+      }
+      .success {
+        background-color: #dff0d8;
+        color: #3c763d;
+      }
+      .error {
+        background-color: #f2dede;
+        color: #a94442;
+      }
+  body
+    h1 Create Product SPU
+    #messageContainer
+    form#spuForm
+      .form-group
+        label(for='spu_name') SPU Name:
+        input(type='text' id='spu_name' name='spu_name' required)
+      .form-group
+        label(for='category_id') Category ID:
+        input(type='text' id='category_id' name='category_id' required)
+      .form-group
+        label(for='brand_id') Brand ID:
+        input(type='text' id='brand_id' name='brand_id')
+      .form-group
+        label(for='variant_attributes') Variant Attributes (comma separated):
+        input(type='text' id='variant_attributes' name='variant_attributes')
+      .form-group
+        label(for='description') Description:
+        textarea(id='description' name='description')
+      .form-group
+        label(for='status') Status (0 - Inactive, 1 - Active):
+        input(type='number' id='status' name='status' value='1')
+      button(type='button' id='submitBtn') Create SPU
+
+    script.
+      document.getElementById('submitBtn').addEventListener('click', async function() {
+        // 获取表单数据
+        const formData = {
+          spu_name: document.getElementById('spu_name').value,
+          category_id: document.getElementById('category_id').value,
+          brand_id: document.getElementById('brand_id').value ? document.getElementById('brand_id').value : null,
+          variant_attributes: document.getElementById('variant_attributes').value,
+          description: document.getElementById('description').value,
+          status: parseInt(document.getElementById('status').value)
+        };
+
+        // 验证必填字段
+        if (!formData.spu_name || !formData.category_id) {
+          showMessage('Please fill in all required fields (SPU Name and Category ID)', 'error');
+          return;
+        }
+
+        try {
+          // 显示加载状态
+          document.getElementById('submitBtn').disabled = true;
+          document.getElementById('submitBtn').textContent = 'Creating...';
+
+          // 调用API
+          const response = await axios.post('/api/spu', formData);
+          
+          // 显示成功消息
+          showMessage('Product SPU created successfully with ID: ' + response.data.id, 'success');
+          
+          // 重置表单
+          document.getElementById('spuForm').reset();
+        } catch (error) {
+          // 显示错误消息
+          if (error.response) {
+            // 服务器返回了错误响应
+            showMessage('Error: ' + (error.response.data.error || error.response.statusText), 'error');
+          } else {
+            // 其他错误
+            showMessage('Error: ' + error.message, 'error');
+          }
+        } finally {
+          // 恢复按钮状态
+          document.getElementById('submitBtn').disabled = false;
+          document.getElementById('submitBtn').textContent = 'Create SPU';
+        }
+      });
+
+      function showMessage(text, type) {
+        const messageContainer = document.getElementById('messageContainer');
+        messageContainer.innerHTML = `<div class="message ${type}">${text}</div>`;
+        
+        // 5秒后自动消失
+        setTimeout(() => {
+          messageContainer.innerHTML = '';
+        }, 5000);
+      }

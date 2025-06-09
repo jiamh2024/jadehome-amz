@@ -1,0 +1,383 @@
+doctype html
+html(lang='en')
+  head
+    meta(charset='UTF-8')
+    meta(name='viewport', content='width=device-width, initial-scale=1.0')
+    title SPU-SKU Relation Management
+    script(src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js")
+    style.
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+      h1 {
+        color: #333;
+      }
+      .container {
+        display: flex;
+        gap: 20px;
+      }
+      .spu-section, .sku-section {
+        flex: 1;
+      }
+      .section-title {
+        font-size: 18px;
+        margin-bottom: 15px;
+        padding-bottom: 5px;
+        border-bottom: 1px solid #ddd;
+      }
+      select, button {
+        padding: 8px 12px;
+        margin-bottom: 10px;
+      }
+      select {
+        width: 100%;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+      }
+      button {
+        background-color: #4CAF50;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      button:hover {
+        background-color: #45a049;
+      }
+      button.delete-btn {
+        background-color: #f44336;
+      }
+      button.delete-btn:hover {
+        background-color: #da190b;
+      }
+      button.add-btn {
+        background-color: #2196F3;
+      }
+      button.add-btn:hover {
+        background-color: #0b7dda;
+      }
+      button.refresh-btn {
+        background-color: #ff9800;
+      }
+      button.refresh-btn:hover {
+        background-color: #e68a00;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 10px;
+      }
+      th, td {
+        border: 1px solid #ddd;
+        padding: 10px;
+        text-align: left;
+      }
+      th {
+        background-color: #f2f2f2;
+      }
+      tr:nth-child(even) {
+        background-color: #f9f9f9;
+      }
+      tr:hover {
+        background-color: #f1f1f1;
+      }
+      .message {
+        padding: 10px;
+        border-radius: 4px;
+        margin-bottom: 15px;
+      }
+      .success {
+        background-color: #dff0d8;
+        color: #3c763d;
+      }
+      .error {
+        background-color: #f2dede;
+        color: #a94442;
+      }
+      .loading {
+        text-align: center;
+        padding: 20px;
+        font-style: italic;
+        color: #666;
+      }
+      .no-data {
+        text-align: center;
+        padding: 20px;
+        color: #666;
+        font-style: italic;
+      }
+
+  body
+    h1 SPU-SKU Relation Management
+
+    #messageContainer
+
+    .container
+      .spu-section
+        .section-title Select SPU
+        select(id='spuSelect')
+          option(value='') -- Select a SPU --
+        button(id='refreshBtn' class='refresh-btn') Refresh SPU List
+        button(id='addSkuBtn' class='add-btn' disabled) Add Selected SKU
+
+        #spuLoading.loading(style='display: none;') Loading SPU list...
+
+      .sku-section
+        .section-title SKUs for Selected SPU
+        table(id='skuTable' style='display: none;')
+          thead
+            tr
+              th SKU ID
+              th SKU Name
+              th Price
+              th Stock
+              th Actions
+          tbody(id='skuTableBody')
+        #noSkuData.no-data(style='display: none;') No SKUs found for the selected SPU.
+        #skuLoading.loading(style='display: none;') Loading SKUs...
+
+        // 可用SKU选择框（用于添加）
+        #availableSkuSelectContainer(style='margin-top: 15px;')
+          select(id='availableSkuSelect')
+            option(value='') -- Select a SKU to add --
+
+    script.
+      // 全局变量
+      let currentSpuId = null;
+      let skuData = [];
+      let availableSkuList = [];
+
+      // DOM元素
+      const spuSelect = document.getElementById('spuSelect');
+      const refreshBtn = document.getElementById('refreshBtn');
+      const addSkuBtn = document.getElementById('addSkuBtn');
+      const skuTable = document.getElementById('skuTable');
+      const skuTableBody = document.getElementById('skuTableBody');
+      const noSkuData = document.getElementById('noSkuData');
+      const spuLoading = document.getElementById('spuLoading');
+      const skuLoading = document.getElementById('skuLoading');
+      const messageContainer = document.getElementById('messageContainer');
+      const availableSkuSelect = document.getElementById('availableSkuSelect');
+
+      // 初始化
+      document.addEventListener('DOMContentLoaded', async function() {
+        await fetchSpuList();
+        await fetchAvailableSkuList(); // 获取所有可用的SKU列表
+        setupEventListeners();
+      });
+
+      // 获取SPU列表
+      async function fetchSpuList() {
+        try {
+          showSpuLoading(true);
+          const response = await axios.get('/api/spu');
+          populateSpuSelect(response.data);
+        } catch (error) {
+          showMessage('Error fetching SPU list: ' + (error.response?.data?.error || error.message), 'error');
+        } finally {
+          showSpuLoading(false);
+        }
+      }
+
+      // 填充SPU下拉选择框
+      function populateSpuSelect(spuList) {
+        spuSelect.innerHTML = '<option value="">-- Select a SPU --</option>';
+        spuList.forEach(spu => {
+          const option = document.createElement('option');
+          option.value = spu.spu_id;
+          option.textContent = spu.spu_name;
+          spuSelect.appendChild(option);
+        });
+      }
+
+      // 获取所有可用的SKU列表
+      async function fetchAvailableSkuList() {
+        try {
+          const response = await axios.get('/api/sku');
+          availableSkuList = response.data.data;
+          populateAvailableSkuSelect(); // 初始填充
+        } catch (error) {
+          showMessage('Error fetching available SKU list: ' + (error.response?.data?.error || error.message), 'error');
+        }
+      }
+
+      // 填充可用SKU下拉选择框
+      function populateAvailableSkuSelect() {
+        if (!currentSpuId) {
+          // 如果没有选择SPU，显示所有SKU
+          availableSkuSelect.innerHTML = '<option value="">-- Select a SKU to add --</option>';
+          availableSkuList.skus.forEach(sku => {
+            const option = document.createElement('option');
+            option.value = sku.sku_id;
+            option.textContent = sku.sku_code;
+            availableSkuSelect.appendChild(option);
+          });
+        } else {
+          // 如果已选择SPU，只显示未关联的SKU
+          const associatedSkuIds = skuData.map(item => item.sku_id);
+          availableSkuSelect.innerHTML = '<option value="">-- Select a SKU to add --</option>';
+          availableSkuList.skus.forEach(sku => {
+            if (!associatedSkuIds.includes(sku.sku_id)) {
+              const option = document.createElement('option');
+              option.value = sku.sku_id;
+              option.textContent = sku.sku_code;
+              availableSkuSelect.appendChild(option);
+            }
+          });
+        }
+      }
+
+      // 获取当前SPU的SKU列表
+      async function fetchSkuListForSpu(spuId) {
+        if (!spuId) {
+          skuTable.style.display = 'none';
+          noSkuData.style.display = 'none';
+          return;
+        }
+
+        try {
+          showSkuLoading(true);
+          const response = await axios.get(`/api/spu/${spuId}/skus`);
+          skuData = response.data;
+          renderSkuTable();
+          if( skuData.length > 0) {
+            populateAvailableSkuSelect(); // 更新可用SKU列表 
+          }          
+        } catch (error) {
+          showMessage('Error fetching SKU list: ' + (error.response?.data?.error || error.message), 'error');
+          skuTable.style.display = 'none';
+          noSkuData.style.display = 'block';
+        } finally {
+          showSkuLoading(false);
+        }
+      }
+
+      // 渲染SKU表格
+      function renderSkuTable() {
+        if (skuData.length === 0) {
+          skuTable.style.display = 'none';
+          noSkuData.style.display = 'block';
+          return;
+        }
+
+        let tableHtml = '';
+        skuData.forEach(sku => {
+          // 格式化价格（假设价格是数字）
+          const formattedPrice = sku.price ? `¥${sku.price.toFixed(2)}` : '-';
+
+          // 格式化库存
+          const formattedStock = sku.stock !== undefined ? sku.stock : '-';
+
+          tableHtml += `
+            <tr data-sku-id="${sku.sku_id}">
+              <td>${sku.sku_id}</td>
+              <td>${sku.sku_code}</td>
+              <td>${formattedPrice}</td>
+              <td>${formattedStock}</td>
+              <td>
+                <button class="delete-btn" onclick="deleteSkuRelation(${sku.sku_id})">Delete</button>
+              </td>
+            </tr>
+          `;
+        });
+
+        skuTableBody.innerHTML = tableHtml;
+        skuTable.style.display = 'table';
+        noSkuData.style.display = 'none';
+      }
+
+      // 添加SKU到SPU
+      async function addSkuToSpu(skuId) {
+        if (!currentSpuId) {
+          showMessage('Please select an SPU first', 'error');
+          return;
+        }
+
+        if (!skuId) {
+          showMessage('Please select a SKU to add', 'error');
+          return;
+        }
+
+        try {
+          showSkuLoading(true);
+          await axios.post(`/api/spu/${currentSpuId}/skus`, { sku_id: skuId });
+          showMessage('SKU added to SPU successfully', 'success');
+          await fetchSkuListForSpu(currentSpuId); // 刷新SKU列表
+          populateAvailableSkuSelect(); // 更新可用SKU列表
+        } catch (error) {
+          showMessage('Error adding SKU to SPU: ' + (error.response?.data?.error || error.message), 'error');
+        } finally {
+          showSkuLoading(false);
+        }
+      }
+
+      // 删除SKU与SPU的关系
+      async function deleteSkuRelation(skuId) {
+        if (!currentSpuId) {
+          showMessage('No SPU selected', 'error');
+          return;
+        }
+
+        if (!confirm('Are you sure you want to remove this SKU from the SPU?')) {
+          return;
+        }
+
+        try {
+          showSkuLoading(true);
+          await axios.delete(`/api/spu/${currentSpuId}/skus/${skuId}`);
+          showMessage('SKU removed from SPU successfully', 'success');
+          await fetchSkuListForSpu(currentSpuId); // 刷新SKU列表
+          populateAvailableSkuSelect(); // 更新可用SKU列表
+        } catch (error) {
+          showMessage('Error removing SKU from SPU: ' + (error.response?.data?.error || error.message), 'error');
+        } finally {
+          showSkuLoading(false);
+        }
+      }
+
+        // 设置事件监听器
+        function setupEventListeners() {
+            spuSelect.addEventListener('change', function() {
+            currentSpuId = this.value;
+            addSkuBtn.disabled = !currentSpuId;
+            if (currentSpuId) {
+                fetchSkuListForSpu(currentSpuId);
+            } else {
+                skuTable.style.display = 'none';
+                noSkuData.style.display = 'none';
+            }
+            });
+
+            refreshBtn.addEventListener('click', async function() {
+            await fetchSpuList();
+            if (currentSpuId) {
+                fetchSkuListForSpu(currentSpuId);
+            }
+            });
+
+            addSkuBtn.addEventListener('click', async function() {
+            const selectedSkuId = availableSkuSelect.value;
+            await addSkuToSpu(selectedSkuId);
+            });
+        }
+
+        // 显示/隐藏加载状态
+        function showSpuLoading(show) {
+            spuLoading.style.display = show ? 'block' : 'none';
+        }
+
+        function showSkuLoading(show) {
+            skuLoading.style.display = show ? 'block' : 'none';
+        }
+
+        // 显示消息
+        function showMessage(text, type) {
+            messageContainer.innerHTML = `<div class="message ${type}">${text}</div>`;
+            setTimeout(() => {
+            messageContainer.innerHTML = '';
+            }, 5000);
+        }
+  
