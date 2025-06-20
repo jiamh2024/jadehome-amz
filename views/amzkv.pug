@@ -64,8 +64,9 @@ body
             thead
               tr
                 th(style="width: 30%") 键名
-                th(style="width: 50%") 值
-                th(style="width: 20%") 操作
+                th(style="width: 45%") 值
+                th(style="width: 10%") 序号
+                th(style="width: 15%") 操作
             tbody#specsBody
               tr
                 td(colspan="3", class="text-center text-muted") 请先选择国家和SKU进行查询
@@ -205,17 +206,17 @@ body
         specsBody.innerHTML = '';
         
         specs.forEach(spec => {
-          addRowToTable(spec.spec_key, spec.spec_value, false);
+          addRowToTable(spec.spec_key, spec.spec_value, spec.sort_order, false);
         });
       }
       
       // 添加新行
       addRowButton.addEventListener('click', function() {
-        addRowToTable('', '', true);
+        addRowToTable('', '', '', true);
       });
       
       // 添加行到表格
-      function addRowToTable(key, value, isNew) {
+      function addRowToTable(key, value, order, isNew) {
         const row = document.createElement('tr');
         row.className = 'editable-row';
         
@@ -227,6 +228,9 @@ body
           <td>
             <input type="text" class="form-control form-control-sm spec-value" value="${value || ''}">
           </td>
+          <td>
+            <input type="text" class="form-control form-control-sm sort-order" value="${order || ''}">
+          </td>
           <td class="actions">
             <button class="btn btn-sm ${isNew ? 'btn-success' : 'btn-primary'} save-row me-1">
               ${isNew ? '添加' : '更新'}
@@ -235,7 +239,8 @@ body
           </td>
         `;
         
-        specsBody.appendChild(row);
+        //specsBody.appendChild(row);
+        specsBody.prepend(row);
         
         // 添加行事件监听
         row.querySelector('.save-row').addEventListener('click', () => saveRow(row, isNew));
@@ -248,9 +253,11 @@ body
         const sku = skuSelect.value;
         const keyInput = row.querySelector('.spec-key');
         const valueInput = row.querySelector('.spec-value');
+        const orderInput = row.querySelector('.sort-order');
         
         const key = keyInput.value.trim();
         const value = valueInput.value.trim();
+        const order = orderInput.value.trim();
         
         if (!key) {
           showNotification('键名不能为空', 'danger');
@@ -264,6 +271,7 @@ body
             sku_code: sku,
             country_code: country,
             spec_key: key,
+            sort_order: order || null,
             spec_value: value || null
           };
           

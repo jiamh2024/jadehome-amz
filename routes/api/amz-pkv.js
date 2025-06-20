@@ -9,16 +9,16 @@ const router = express.Router();
 // 1. 创建产品规格
 router.post('/', async (req, res, next) => {
   try {
-    const { sku_code, country_code, spec_key, spec_value } = req.body;
+    const { sku_code, country_code, spec_key, spec_value, sort_order } = req.body;
     
-    if (!sku_code || !country_code || !spec_key) {
+    if (!sku_code || !country_code || !spec_key || !sort_order) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
     const result = await db.query(
-      `INSERT INTO amz_pd_kv (sku_code, country_code, spec_key, spec_value)
-       VALUES (?, ?, ?, ?)`,
-      [sku_code, country_code, spec_key, spec_value || null]
+      `INSERT INTO amz_pd_kv (sku_code, country_code, spec_key, spec_value, sort_order)
+       VALUES (?, ?, ?, ?, ?)`,
+      [sku_code, country_code, spec_key, spec_value || null, sort_order]
     );
 
     res.status(201).json({
@@ -27,6 +27,7 @@ router.post('/', async (req, res, next) => {
       country_code,
       spec_key,
       spec_value,
+      sort_order,
       message: 'Product spec created successfully'
     });
   } catch (error) {
@@ -60,9 +61,10 @@ router.get('/', async (req, res, next) => {
       params.push(spec_key);
     }
     
-    sql += ' ORDER BY updated_at DESC';
+    sql += ' ORDER BY sort_order ASC';
     
     const rows = await db.query(sql, params);
+    //console.log(rows);
     res.json(rows);
   } catch (error) {
     next(error);
@@ -72,19 +74,21 @@ router.get('/', async (req, res, next) => {
 // 3. 更新产品规格（新增）
 router.put('/', async (req, res, next) => {
   try {
-    const { sku_code, country_code, spec_key, spec_value } = req.body;
-    
-    if (!sku_code || !country_code || !spec_key) {
+    const { sku_code, country_code, spec_key, spec_value, sort_order } = req.body;
+
+    if (!sku_code || !country_code || !spec_key || !sort_order) {
       return res.status(400).json({ 
-        error: '缺少必要字段: sku_code, country_code 和 spec_key' 
+        error: '缺少必要字段: sku_code, country_code, sort_order 和 spec_key' 
       });
     }
 
+    const inOrder = parseInt(sort_order);
+
     const result = await db.query(
       `UPDATE amz_pd_kv 
-       SET spec_value = ?, updated_at = CURRENT_TIMESTAMP
+       SET spec_value = ?, sort_order = ?, updated_at = CURRENT_TIMESTAMP
        WHERE sku_code = ? AND country_code = ? AND spec_key = ?`,
-      [spec_value || null, sku_code, country_code, spec_key]
+      [spec_value || null, inOrder, sku_code, country_code, spec_key]
     );
     
     if (result.affectedRows === 0) {
@@ -100,10 +104,12 @@ router.put('/', async (req, res, next) => {
         sku_code,
         country_code,
         spec_key,
+        sort_order,
         spec_value
       }
     });
   } catch (error) {
+    console.log(error);
     next(error);
   }
 });
