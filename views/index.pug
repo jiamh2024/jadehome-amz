@@ -75,6 +75,91 @@ html(lang="zh-CN")
       .spinner-border.text-primary(style="width: 3rem; height: 3rem;" role="status")
         span.visually-hidden Loading...
 
+    // 导航栏
+    nav.navbar.navbar-expand-lg.navbar-dark.bg-primary.sticky-top
+      .container-fluid
+        a.navbar-brand(href="/")
+          i.bi.bi-speedometer2.me-2
+          | 管理系统
+        button.navbar-toggler(type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation")
+          span.navbar-toggler-icon
+        .collapse.navbar-collapse(id="navbarNav")
+          ul.navbar-nav.me-auto.mb-2.mb-lg-0
+            li.nav-item
+              a.nav-link.active(aria-current="page" href="/")
+                i.bi.bi-house-door.me-1
+                | 首页
+            li.nav-item.dropdown
+              a.nav-link.dropdown-toggle(href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false")
+                i.bi.bi-clipboard-data.me-1
+                | 看板管理
+              ul.dropdown-menu
+                li
+                  a.dropdown-item(href="/kbadd") 添加看板
+                li
+                  a.dropdown-item(href="/kbls") 看板列表
+            li.nav-item.dropdown
+              a.nav-link.dropdown-toggle(href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false")
+                i.bi.bi-box-seam.me-1
+                | 产品管理
+              ul.dropdown-menu
+                li
+                  a.dropdown-item(href="/skuadd") 添加SKU
+                li
+                  a.dropdown-item(href="/skuls") SKU列表
+                li
+                  a.dropdown-item(href="/spuadd") 添加SPU
+                li
+                  a.dropdown-item(href="/spuls") SPU列表
+                li
+                  a.dropdown-item(href="/spusku") SPU-SKU关联
+            li.nav-item.dropdown
+              a.nav-link.dropdown-toggle(href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false")
+                i.bi.bi-globe.me-1
+                | 国家管理
+              ul.dropdown-menu
+                li
+                  a.dropdown-item(href="/cntyadd") 添加国家
+                li
+                  a.dropdown-item(href="/cntyls") 国家列表
+            li.nav-item.dropdown
+              a.nav-link.dropdown-toggle(href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false")
+                i.bi.bi-calculator.me-1
+                | 成本管理
+              ul.dropdown-menu
+                li
+                  a.dropdown-item(href="/cpadd") 添加成本
+                li
+                  a.dropdown-item(href="/cpls") 成本列表
+            li.nav-item
+              a.nav-link(href="/profit")
+                i.bi.bi-bar-chart3.me-1
+                | 利润分析
+            li.nav-item
+              a.nav-link(href="/vcal")
+                i.bi.bi-calendar-check.me-1
+                | 日历工具
+            li.nav-item.dropdown
+              a.nav-link.dropdown-toggle(href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false")
+                i.bi.bi-amazon.me-1
+                | 亚马逊管理
+              ul.dropdown-menu
+                li
+                  a.dropdown-item(href="/amzkv") 亚马逊KV
+                li
+                  a.dropdown-item(href="/amzfile") 亚马逊文件
+                li
+                  a.dropdown-item(href="/amzorder") 亚马逊订单
+                li
+                  a.dropdown-item(href="/signin") 广告API登录
+                li
+                  a.dropdown-item(href="/campaigns") 广告活动
+          ul.navbar-nav
+            li.nav-item
+              a.nav-link(href="/users")
+                i.bi.bi-person-circle.me-1
+                | 用户中心
+
     .container-fluid.py-4
       .row.mb-4
         .col-md-12
