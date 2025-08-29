@@ -1,0 +1,41 @@
+document.addEventListener('DOMContentLoaded', function() {
+  // 初始化Select2
+  $('#country').select2();
+  $('#sku').select2();
+  
+  // 获取所有必要的DOM元素
+  const countrySelect = document.getElementById('country');
+  const skuSelect = document.getElementById('sku');
+  const fetchButton = document.getElementById('fetchSpecs');
+  const specsContainer = document.getElementById('specsContainer');
+  const specsBody = document.getElementById('specsBody');
+  const addRowButton = document.getElementById('addRow');
+  const saveAllButton = document.getElementById('saveAll');
+  const copySpecsButton = document.getElementById('copySpecsButton');
+  const copySpecsModal = document.getElementById('copySpecsModal');
+  const targetSkuInput = document.getElementById('targetSku');
+  const targetCountrySelect = document.getElementById('targetCountry');
+  const confirmCopyButton = document.getElementById('confirmCopyButton');
+  const cancelCopyButton = document.getElementById('cancelCopy');
+  const closeCopyModalButton = document.getElementById('closeCopyModal');
+  
+  // 只创建一次模态框实例
+  let copySpecsModalInstance;
+  
+  // 添加模态框隐藏事件监听器
+  if (copySpecsModal) {
+    copySpecsModal.addEventListener('hidden.bs.modal', function() {
+      closeModalAndClearInput();
+    });
+  }
+  
+  // 加载国家列表
+  loadCountries();
+  
+  // 国家选择变化时加载SKU
+  $('#country').on('change', function() {
+    const country = this.value;
+    if (country) {
+      loadSKUs(country);
+    } else {
+      $('#sku').empty().append('<option value=
