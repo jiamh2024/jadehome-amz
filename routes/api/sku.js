@@ -7,15 +7,15 @@ const { validateSku } = require('../../validators/skuValidator');
 router.post('/', validateSku, async (req, res) => {
   try {
     const { sku_code, product_name, length, width, height, weight, 
-            has_battery, battery_type, purchase_cost, currency } = req.body;
+            has_battery, battery_type, purchase_cost, currency, asin } = req.body;
 
     const result = await db.query(
       `INSERT INTO product_sku 
        (sku_code, product_name, length, width, height, weight, 
-        has_battery, battery_type, purchase_cost, currency)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        has_battery, battery_type, purchase_cost, currency, asin)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [sku_code, product_name, length, width, height, weight,
-       has_battery, battery_type, purchase_cost, currency]
+       has_battery, battery_type, purchase_cost, currency, asin || null]
     );
 
     res.status(201).json({
@@ -97,7 +97,7 @@ router.get('/:id', async (req, res) => {
 router.put('/:id', validateSku, async (req, res) => {
   try {
     const { sku_code, product_name, length, width, height, weight, 
-            has_battery, battery_type, purchase_cost, currency } = req.body;
+            has_battery, battery_type, purchase_cost, currency, asin } = req.body;
 
     const result = await db.query(
       `UPDATE product_sku SET
@@ -110,10 +110,11 @@ router.put('/:id', validateSku, async (req, res) => {
         has_battery = ?,
         battery_type = ?,
         purchase_cost = ?,
-        currency = ?
+        currency = ?,
+        asin = ?
        WHERE sku_id = ? AND is_active = 1`,
       [sku_code, product_name, length, width, height, weight,
-       has_battery, battery_type, purchase_cost, currency, req.params.id]
+       has_battery, battery_type, purchase_cost, currency, asin || null, req.params.id]
     );
 
     if (result.affectedRows === 0) {

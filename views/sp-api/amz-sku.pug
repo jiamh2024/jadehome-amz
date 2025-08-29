@@ -1,0 +1,897 @@
+doctype html
+html(lang="zh-CN")
+head
+  meta(charset="UTF-8")
+  meta(name="viewport", content="width=device-width, initial-scale=1.0")
+  title 亚马逊多国SKU信息
+  link(rel="stylesheet", href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css")
+  link(rel="stylesheet", href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css")
+  style.
+    .loading {
+      text-align: center;
+      margin: 20px 0;
+    }
+    .spinner-border {
+      width: 3rem; 
+      height: 3rem;
+    }
+    .market-section {
+      margin-bottom: 30px;
+    }
+    .market-header {
+      background-color: #f8f9fa;
+      padding: 10px 15px;
+      border-radius: 5px;
+      margin-bottom: 15px;
+    }
+    .sku-card {
+      margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      transition: transform 0.2s;
+    }
+    .sku-card:hover {
+      transform: translateY(-3px);
+    }
+    .sku-header {
+      background-color: #f8f9fa;
+      padding: 10px 15px;
+      border-bottom: 1px solid #eee;
+      font-weight: bold;
+    }
+    .sku-body {
+      padding: 15px;
+    }
+    .product-image {
+      max-width: 100px;
+      max-height: 100px;
+      margin-right: 15px;
+    }
+    .badge-market {
+      font-size: 0.75em;
+      margin-left: 5px;
+    }
+    .market-tabs {
+      margin-bottom: 20px;
+    }
+    .market-tabs .nav-link {
+      padding: 0.5rem 1rem;
+    }
+    .market-tabs .nav-link.active {
+      font-weight: bold;
+      border-bottom: 3px solid #0d6efd;
+    }
+    .refresh-btn {
+      margin-left: 10px;
+    }
+    .sku-stats {
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px dashed #eee;
+    }
+    .stat-item {
+      margin-bottom: 5px;
+    }
+    .price-table td {
+      vertical-align: middle;
+    }
+
+body
+  .container.mt-4
+    h1.mb-4 亚马逊多国SKU信息
+    .d-flex.justify-content-between.align-items-center
+      p.text-muted.mb-0 显示各市场SKU信息及发布状态
+      button#refreshBtn.btn.btn-sm.btn-outline-secondary.refresh-btn
+        i.bi.bi-arrow-clockwise
+        |  刷新数据
+    
+    // 市场选择标签 - 增加美国市场支持
+    ul.nav.nav-tabs.market-tabs.mb-3#marketTabs
+      li.nav-item
+        a.nav-link.active(data-market="all") 
+          i.bi.bi-globe
+          |  全部市场
+      li.nav-item
+        a.nav-link(data-market="US") 
+          i.bi.bi-flag-fill.text-blue
+          |  美国
+      li.nav-item
+        a.nav-link(data-market="CA") 
+          i.bi.bi-flag-fill.text-danger
+          |  加拿大
+      li.nav-item
+        a.nav-link(data-market="UK") 
+          i.bi.bi-flag-fill.text-primary
+          |  英国
+      li.nav-item
+        a.nav-link(data-market="AE") 
+          i.bi.bi-flag-fill.text-success
+          |  阿联酋
+      li.nav-item
+        a.nav-link(data-market="SA") 
+          i.bi.bi-flag-fill.text-warning
+          |  沙特
+    
+    // 加载指示器
+    .loading#loadingIndicator
+      div.spinner-border.text-primary(role="status")
+        span.visually-hidden 加载中...
+    
+    // SKU内容区域
+    .market-content#marketContent
+      // 数据将通过JavaScript动态加载
+    
+    // 无数据提示
+    .alert.alert-info.text-center#noDataAlert(style="display: none;")
+      i.bi.bi-info-circle
+      |  暂无数据
+    
+  script(src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js")
+  script(src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js")
+  script.
+    document.addEventListener('DOMContentLoaded', function() {
+      const marketTabs = document.getElementById('marketTabs');
+      const marketContent = document.getElementById('marketContent');
+      const loadingIndicator = document.getElementById('loadingIndicator');
+      const noDataAlert = document.getElementById('noDataAlert');
+      const refreshBtn = document.getElementById('refreshBtn');
+      let currentMarket = 'all';
+      let marketplaces = [];
+      let skus = []; // 全局skus变量，存储所有SKU数据
+      
+      // 初始加载市场列表和SKU数据
+      Promise.all([
+        loadMarketplaces(),
+        loadSkuData(currentMarket)
+      ]);
+      
+      // 加载市场列表
+      function loadMarketplaces() {
+        return axios.get('/amzsku/api/marketplaces')
+          .then(response => {
+            if (response.data.success) {
+              marketplaces = response.data.data;
+            }
+          })
+          .catch(error => {
+            console.error('加载市场列表失败:', error);
+          });
+      }
+      
+      // 市场标签切换
+      marketTabs.addEventListener('click', function(e) {
+        if (e.target.closest('.nav-link')) {
+          const navLink = e.target.closest('.nav-link');
+          marketTabs.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
+          navLink.classList.add('active');
+          currentMarket = navLink.dataset.market;
+          loadSkuData(currentMarket);
+        }
+      });
+      
+      // 刷新按钮点击
+      refreshBtn.addEventListener('click', function() {
+        loadSkuData(currentMarket);
+      });
+      
+      // 加载SKU数据 - 使用新的API
+      function loadSkuData(market) {
+        loadingIndicator.style.display = 'block';
+        marketContent.innerHTML = '';
+        noDataAlert.style.display = 'none';
+        
+        axios.get(`/amzsku/api/database-skus`)
+          .then(response => {
+            loadingIndicator.style.display = 'none';
+            // 确保skus始终是一个数组
+            skus = [];
+            if (response.data && response.data.data) {
+              skus = Array.isArray(response.data.data) ? response.data.data : [];
+            }
+            
+            if (skus.length === 0) {
+              noDataAlert.style.display = 'block';
+              return;
+            }
+            
+            // 按市场分组
+            const skusByMarket = groupSkusByMarket(skus);
+            
+            // 渲染SKU数据
+            for (const marketId in skusByMarket) {
+              // 如果选择了特定市场，则只显示该市场的数据
+              if (market !== 'all' && marketId !== market) {
+                continue;
+              }
+              
+              const marketSkus = skusByMarket[marketId];
+              marketContent.appendChild(createMarketSection(marketId, marketSkus));
+            }
+          })
+          .catch(error => {
+            loadingIndicator.style.display = 'none';
+            console.error('加载SKU数据失败:', error);
+            marketContent.innerHTML = `
+              <div class="alert alert-danger text-center">
+                <i class="bi bi-exclamation-circle"></i> 加载数据失败，请重试
+              </div>
+            `;
+          });
+      }
+      
+      // 按市场分组SKU
+      function groupSkusByMarket(skus) {
+        const groups = {};
+        // 确保所有市场都有对应的分组，即使没有SKU
+        ['US', 'CA', 'UK', 'AE', 'SA'].forEach(market => {
+          groups[market] = [];
+        });
+        
+        skus.forEach(sku => {
+          // 为每个SKU创建5个市场版本
+          ['US', 'CA', 'UK', 'AE', 'SA'].forEach(market => {
+            const skuCopy = {...sku};
+            skuCopy.marketplaceId = market;
+            groups[market].push(skuCopy);
+          });
+        });
+        
+        return groups;
+      }
+      
+      // 创建市场区块
+      function createMarketSection(market, skus) {
+        const marketSection = document.createElement('div');
+        marketSection.className = 'market-section';
+        
+        // 市场头部
+        const marketHeader = document.createElement('div');
+        marketHeader.className = 'market-header d-flex justify-content-between align-items-center';
+        
+        const marketTitle = document.createElement('h3');
+        marketTitle.className = 'h5 mb-0';
+        let marketFlagIcon = 'bi-globe';
+        let marketFlagColor = 'text-secondary';
+        let marketName = '未知市场';
+        
+        switch(market) {
+          case 'US':
+            marketFlagIcon = 'bi-flag-fill';
+            marketFlagColor = 'text-blue';
+            marketName = '美国';
+            break;
+          case 'CA':
+            marketFlagIcon = 'bi-flag-fill';
+            marketFlagColor = 'text-danger';
+            marketName = '加拿大';
+            break;
+          case 'UK':
+            marketFlagIcon = 'bi-flag-fill';
+            marketFlagColor = 'text-primary';
+            marketName = '英国';
+            break;
+          case 'AE':
+            marketFlagIcon = 'bi-flag-fill';
+            marketFlagColor = 'text-success';
+            marketName = '阿联酋';
+            break;
+          case 'SA':
+            marketFlagIcon = 'bi-flag-fill';
+            marketFlagColor = 'text-warning';
+            marketName = '沙特';
+            break;
+        }
+        
+        marketTitle.innerHTML = `<i class="bi ${marketFlagIcon} ${marketFlagColor} me-2"></i>${marketName} (${skus.length}个SKU)`;
+        marketHeader.appendChild(marketTitle);
+        
+        // 添加SKU数量统计
+        const marketStats = document.createElement('span');
+        marketStats.className = 'badge bg-primary';
+        marketStats.textContent = `${skus.length}个SKU`;
+        marketHeader.appendChild(marketStats);
+        
+        marketSection.appendChild(marketHeader);
+        
+        // SKU列表
+        const skuList = document.createElement('div');
+        skuList.className = 'row';
+        
+        skus.forEach(sku => {
+          skuList.appendChild(createSkuCard(sku, market));
+        });
+        
+        marketSection.appendChild(skuList);
+        
+        return marketSection;
+      }
+      
+      // 创建SKU卡片
+      function createSkuCard(sku, market) {
+        console.log(`创建SKU卡片: ${sku.sku_code || sku.sku}, 市场: ${market}`);
+        
+        const skuCard = document.createElement('div');
+        skuCard.className = 'col-md-6 col-lg-4';
+        
+        // 获取市场货币符号
+        const currencyMap = {
+          'US': '$',
+          'CA': 'C$',
+          'UK': '£',
+          'AE': 'AED',
+          'SA': 'SAR'
+        };
+        
+        // 先计算发布状态的HTML内容
+        const listingStatusHTML = getListingStatusHTML(sku, market);
+        const listingPriceHTML = getListingPriceHTML(sku, market);
+        
+        // SKU卡片内容
+        skuCard.innerHTML = `
+          <div class="card sku-card h-100">
+            <div class="card-header sku-header d-flex justify-content-between align-items-center">
+              <h5 class="card-title mb-0">${escapeHtml(sku.sku_code || sku.sku)}</h5>
+              <span class="badge badge-market bg-secondary">${getMarketName(market)}</span>
+            </div>
+            <div class="card-body sku-body">
+              <div class="d-flex mb-3">
+                <div>
+                  <h6 class="card-subtitle mb-1 text-truncate" title="${escapeHtml(sku.product_name || '无产品名称')}">${escapeHtml(sku.product_name || '无产品名称')}</h6>
+                  <p class="text-sm text-muted mb-0">ASIN: ${escapeHtml(sku.asin || '无')}</p>
+                  <p class="text-sm text-muted mb-0">采购成本: ¥${sku.purchase_cost || '0'} | 重量: ${sku.weight || '0'} kg</p>
+                  <p class="text-sm text-muted mb-0">产品尺寸: ${sku.length || '0'} × ${sku.width || '0'} × ${sku.height || '0'} cm</p>
+                  <p class="text-sm text-muted mb-0">电池类型: ${escapeHtml(sku.battery_type || '无')}</p>
+                </div>
+              </div>
+              <div class="sku-stats">
+                <div class="stat-item d-flex justify-content-between">
+                  <span class="text-sm text-muted">发布状态:</span>
+                  <span class="font-weight-medium">${listingStatusHTML}</span>
+                </div>
+                <div class="stat-item d-flex justify-content-between">
+                  <span class="text-sm font-weight-bold">销售价格:</span>
+                  <span class="font-weight-bold">${listingPriceHTML}</span>
+                </div>
+              
+              <!-- 操作按钮 -->
+              <div class="mt-3 d-flex gap-2">
+                <button class="btn btn-sm ${sku[`is_listed_${market}`] ? 'btn-info' : 'btn-primary'} publish-btn" data-sku="${escapeHtml(sku.sku_code || sku.sku)}" data-market="${escapeHtml(market)}">
+                  <i class="bi ${sku[`is_listed_${market}`] ? 'bi-pencil' : 'bi-upload'}"></i> ${sku[`is_listed_${market}`] ? '更新产品' : '发布产品'}
+                </button>
+                <button class="btn btn-sm btn-success price-btn" data-sku="${escapeHtml(sku.sku_code || sku.sku)}" data-market="${escapeHtml(market)}">
+                  <i class="bi bi-currency-dollar"></i> 价格管理
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+        
+        // 添加事件监听器
+        const publishBtn = skuCard.querySelector('.publish-btn');
+        const priceBtn = skuCard.querySelector('.price-btn');
+        
+        publishBtn.addEventListener('click', function() {
+          showPublishModal(sku.sku_code || sku.sku, market);
+        });
+        
+        priceBtn.addEventListener('click', function() {
+          showPriceModal(sku.sku_code || sku.sku, market);
+        });
+        
+        return skuCard;
+      }
+      
+      // 获取市场名称
+      function getMarketName(market) {
+        const marketNames = {
+          'US': '美国',
+          'CA': '加拿大',
+          'UK': '英国',
+          'AE': '阿联酋',
+          'SA': '沙特'
+        };
+        return marketNames[market] || '未知';
+      }
+      
+      // 防XSS
+      function escapeHtml(unsafe) {
+        return unsafe?.toString()
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#039;") || '';
+      }
+      
+      // 获取销售价格的HTML
+      function getSellingPriceHTML(sku, market) {
+        // 为了测试，我们硬编码一个价格值
+        const testPrice = 99.99;
+        
+        // 尝试从SKU对象中获取价格信息
+        const priceKey = `price_${market}`;
+        const sellingPriceKey = `selling_price_${market}`;
+        
+        // 调试信息 - 显示SKU对象中所有可能的价格相关字段
+        console.log(`SKU: ${sku.sku_code}, 市场: ${market}, 可用的价格字段:`, {
+          priceKeyExists: priceKey in sku,
+          sellingPriceKeyExists: sellingPriceKey in sku,
+          priceKeyData: sku[priceKey],
+          sellingPriceKeyData: sku[sellingPriceKey]
+        });
+        
+        // 兼容多种可能的价格数据格式
+        let price = testPrice; // 默认使用测试价格
+        
+        // 先尝试直接的销售价格字段
+        if (sku[sellingPriceKey] !== undefined && sku[sellingPriceKey] !== null) {
+          price = sku[sellingPriceKey];
+        }
+        // 然后尝试从price对象中获取
+        else if (sku[priceKey] && typeof sku[priceKey] === 'object') {
+          price = sku[priceKey].Amount || sku[priceKey].amount || testPrice;
+        }
+        // 最后尝试其他可能的格式
+        else if (sku[priceKey] !== undefined && sku[priceKey] !== null) {
+          price = sku[priceKey];
+        }
+        
+        // 确保价格是数字
+        price = parseFloat(price) || testPrice;
+        
+        // 获取货币符号
+        const currencyMap = {
+          'US': '$',
+          'CA': 'C$',
+          'UK': '£',
+          'AE': 'AED',
+          'SA': 'SAR'
+        };
+        const currencySymbol = currencyMap[market] || '';
+        
+        // 显示价格
+        return `<span class="text-primary">${currencySymbol}${price}</span>`;
+      }
+      
+      //获取价格信息
+      function getListingPriceHTML(sku, market) {
+        // 尝试从SKU对象中获取价格信息
+        const priceKey = `price_${market}`;
+        const sellingPriceKey = `selling_price_${market}`;
+
+        // 兼容多种可能的价格数据格式
+        const hasTokenError = sku['has_token_error_' + market];
+        const hasError = sku['error_' + market];
+        const isListed = sku['is_listed_' + market];
+        const errorMessage = sku['error_' + market] || '';
+        
+        if (hasTokenError) {
+          return '<span class="text-danger" title="无法获取访问令牌">连接错误</span>';
+        } else if (hasError) {
+          return '<span class="text-danger"  title="' + escapeHtml(errorMessage) + '">查询失败</span>';
+        } else if (isListed) {
+          return '<span class="text-success">' + escapeHtml(sku[priceKey].CurrencyCode) + escapeHtml(sku[priceKey].Amount) + '</span>';
+        } else {
+          return '<span class="text-warning">未发布</span>';
+        }
+      }
+
+      // 获取发布状态的HTML
+      function getListingStatusHTML(sku, market) {
+        // 尝试从SKU对象中获取价格信息
+        const priceKey = `price_${market}`;
+        const sellingPriceKey = `selling_price_${market}`;
+        
+        // 调试信息 - 显示SKU对象中所有可能的价格相关字段
+        console.log(`SKU: ${sku.sku_code}, 市场: ${market}, 可用的价格字段:`, {
+          priceKeyExists: priceKey in sku,
+          sellingPriceKeyExists: sellingPriceKey in sku,
+          priceKeyData: sku[priceKey],
+          sellingPriceKeyData: sku[sellingPriceKey]
+        });
+        
+        // 兼容多种可能的价格数据格式
+        const hasTokenError = sku['has_token_error_' + market];
+        const hasError = sku['error_' + market];
+        const isListed = sku['is_listed_' + market];
+        const errorMessage = sku['error_' + market] || '';
+        
+        if (hasTokenError) {
+          return '<span class="text-danger" title="无法获取访问令牌">连接错误</span>';
+        } else if (hasError) {
+          return '<span class="text-danger" title="' + escapeHtml(errorMessage) + '">查询失败</span>';
+        } else if (isListed) {
+          return '<span class="text-success">已发布</span>';
+        } else {
+          return '<span class="text-warning">未发布</span>';
+        }
+      }
+
+      // 显示发布/更新产品模态框
+      function showPublishModal(sku, market) {
+        const modal = document.getElementById('publishModal');
+        const modalTitle = document.querySelector('#publishModal .modal-title');
+        const publishButton = document.querySelector('#publishModal button[type="submit"]');
+        // Remove the duplicate form declaration - it's already declared later
+        
+        const skuData = skus.find(s => s.sku_code === sku);
+        const isListed = skuData ? skuData[`is_listed_${market}`] : false;
+        
+        // 存储当前操作类型（发布或更新）在隐藏字段中
+        const actionTypeInput = document.getElementById('publishActionType') || document.createElement('input');
+        actionTypeInput.type = 'hidden';
+        actionTypeInput.id = 'publishActionType';
+        actionTypeInput.value = isListed ? 'update' : 'publish';
+        
+        // 将隐藏字段添加到表单中（如果不存在）
+        const form = document.getElementById('publishForm');
+        if (!document.getElementById('publishActionType')) {
+          form.appendChild(actionTypeInput);
+        }
+        
+        document.getElementById('publishSku').value = sku;
+        document.getElementById('publishMarket').value = market;
+        document.getElementById('publishMarketName').value = getMarketName(market);
+        
+        // 根据发布状态更新模态框标题和按钮文本
+        if (isListed) {
+          modalTitle.textContent = '更新产品信息';
+          publishButton.textContent = '更新';
+          // 确保保留btn基础类，只切换变体类
+          publishButton.className = 'btn btn-info';
+        } else {
+          modalTitle.textContent = '发布产品到亚马逊';
+          publishButton.textContent = '发布';
+          // 确保保留btn基础类，只切换变体类
+          publishButton.className = 'btn btn-primary';
+        }
+        
+        // 添加按钮点击事件，手动触发表单提交
+        // 先移除可能存在的旧监听器
+        const newPublishButton = publishButton.cloneNode(true);
+        publishButton.parentNode.replaceChild(newPublishButton, publishButton);
+        
+        newPublishButton.addEventListener('click', function() {
+          // Use the form variable that's already declared elsewhere in the function
+          document.getElementById('publishForm').dispatchEvent(new Event('submit'));
+        });
+        
+        // 使用Bootstrap的模态框API显示模态框
+        const bootstrapModal = new bootstrap.Modal(modal);
+        bootstrapModal.show();
+      }
+      
+      // 关闭发布产品模态框
+      function closePublishModal() {
+        // 使用Bootstrap的模态框API关闭模态框
+        const modal = document.getElementById('publishModal');
+        const bootstrapModal = bootstrap.Modal.getInstance(modal);
+        if (bootstrapModal) {
+          bootstrapModal.hide();
+        }
+        document.getElementById('publishMessage').textContent = '';
+      }
+
+      // 发布/更新产品到亚马逊
+      document.getElementById('publishForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const sku = document.getElementById('publishSku').value;
+        const marketplaceId = document.getElementById('publishMarket').value;
+        const actionType = document.getElementById('publishActionType').value;
+        const publishMessage = document.getElementById('publishMessage');
+        const modalTitle = document.querySelector('#publishModal .modal-title');
+
+        // 根据操作类型显示不同的提示信息
+        if (actionType === 'update') {
+          publishMessage.innerHTML = '<span class="text-info">正在更新产品信息，请稍候...</span>';
+        } else {
+          publishMessage.innerHTML = '<span class="text-info">正在发布产品，请稍候...</span>';
+        }
+
+        // 获取SKU数据作为更新数据
+        const skuData = skus.find(s => s.sku_code === sku);
+        const updateData = skuData ? {
+          productType: 'PRODUCT',
+          requirements: 'LISTING',
+          attributes: {
+            title: skuData.product_name,
+            // 其他需要更新的属性可以在这里添加
+          }
+        } : {};
+
+        // 根据操作类型调用不同的API
+        if (actionType === 'update') {
+          // 调用更新API
+          axios.post('/amzsku/api/update', { marketplaceId, skuCode: sku, updateData })
+            .then(response => {
+              publishMessage.innerHTML = `<span class="text-success">${response.data.message}</span>`;
+              setTimeout(() => {
+                closePublishModal();
+                refreshData(); // 刷新数据
+              }, 2000);
+            })
+            .catch(error => {
+              publishMessage.innerHTML = `<span class="text-danger">更新失败: ${error.response?.data?.message || error.message}</span>`;
+            });
+        } else {
+          // 调用发布API
+          axios.post('/amzsku/api/publish', { marketplaceId, skuCode: sku })
+            .then(response => {
+              publishMessage.innerHTML = `<span class="text-success">${response.data.message}</span>`;
+              setTimeout(() => {
+                closePublishModal();
+                refreshData(); // 刷新数据
+              }, 2000);
+            })
+            .catch(error => {
+              publishMessage.innerHTML = `<span class="text-danger">发布失败: ${error.response?.data?.message || error.message}</span>`;
+            });
+        }
+      });
+
+      // 关闭价格管理模态框 - 使用更可靠的方式
+      function closePriceModal() {
+        console.log('尝试关闭价格管理模态框');
+        
+        // 移除我们添加的遮罩层
+        const overlay = document.getElementById('priceModalOverlay');
+        if (overlay && overlay.parentNode) {
+          overlay.parentNode.removeChild(overlay);
+        }
+        
+        // 直接操作DOM元素进行关闭
+        const modal = document.getElementById('priceModal');
+        if (modal) {
+          console.log('执行基础CSS关闭操作');
+          // 使用同步方式操作DOM
+          modal.style.display = 'none';
+          modal.classList.add('d-none');
+          modal.classList.remove('d-block');
+          modal.style.zIndex = '';
+          
+          // 添加一个小延迟确保DOM更新完成
+          setTimeout(() => {
+            modal.style.display = 'none';
+          }, 10);
+        }
+        
+        // 恢复body样式
+        document.body.style.overflow = '';
+        
+        // 清除消息
+        const priceMessage = document.getElementById('priceMessage');
+        if (priceMessage) {
+          priceMessage.textContent = '';
+        }
+        
+        console.log('已关闭价格管理模态框');
+      }
+      // 将closePriceModal函数暴露到全局作用域，确保HTML中的onclick属性可以正确调用它。
+      window.closePriceModal = closePriceModal;
+      window.showPublishModal = showPublishModal;
+      window.closePublishModal = closePublishModal;
+
+      // 显示价格管理模态框 - 支持多市场价格展示
+      function showPriceModal(sku, market = null) {
+        const modal = document.getElementById('priceModal');
+        if (!modal) {
+          console.error('未找到价格管理模态框元素');
+          return;
+        }
+        
+        // 清除之前可能存在的遮罩层
+        const existingOverlay = document.getElementById('priceModalOverlay');
+        if (existingOverlay && existingOverlay.parentNode) {
+          existingOverlay.parentNode.removeChild(existingOverlay);
+        }
+        
+        const priceSku = document.getElementById('priceSku');
+        const priceMarket = document.getElementById('priceMarket');
+        const priceMessage = document.getElementById('priceMessage');
+        const priceTableBody = document.getElementById('priceTableBody');
+        
+        if (priceSku) priceSku.value = sku;
+        if (priceMarket) priceMarket.value = market || '';
+        if (priceMessage) priceMessage.textContent = '';
+        
+        // 清空并显示加载状态
+        if (priceTableBody) {
+          priceTableBody.innerHTML = '<tr><td colspan="4" class="text-center">加载中...</td></tr>';
+        }
+        
+        // 获取所有市场的价格信息
+        axios.get(`/amzsku/api/prices/all?skuCode=${sku}`)
+          .then(response => {
+            // 修复：与API返回格式匹配
+            let prices = [];
+            if (response.data && response.data.success && response.data.data) {
+              prices = response.data.data;
+            } else {
+              // 兼容可能的其他格式
+              prices = response.data || [];
+            }
+            
+            // 旧的实现：使用预定义的市场列表
+            const marketList = ['US', 'CA', 'UK', 'AE', 'SA'];
+            let tableHtml = '';
+            
+            marketList.forEach(marketId => {
+              // 查找该市场的价格
+              let priceData = {};
+              if (Array.isArray(prices)) {
+                priceData = prices.find(p => p.marketplaceId === marketId) || {};
+              } else if (typeof prices === 'object') {
+                priceData = prices[marketId] || {};
+              }
+              
+              const currentPrice = priceData.currentPrice || priceData.price?.amount || '0.00';
+              const currency = priceData.currency || priceData.price?.currencyCode || 'USD';
+              
+              // 货币符号映射
+              const currencyMap = {
+                'USD': '$',
+                'CAD': 'C$',
+                'GBP': '£',
+                'AED': 'AED',
+                'SAR': 'SAR'
+              };
+              
+              // 获取带符号的价格
+              const symbol = currencyMap[currency] || currency;
+              const priceWithSymbol = `${symbol}${currentPrice}`;
+              
+              tableHtml += `
+                <tr>
+                  <td>${getMarketName(marketId)}</td>
+                  <td>${priceWithSymbol}</td>
+                  <td>
+                    <input type="number" class="new-price-input form-control" data-market="${marketId}" 
+                           value="${currentPrice}" min="0.01" step="0.01">
+                  </td>
+                  <td>
+                    <button type="button" class="update-price-btn btn btn-sm btn-primary" 
+                            data-market="${marketId}">更新</button>
+                  </td>
+                </tr>
+              `;
+            });
+            
+            priceTableBody.innerHTML = tableHtml;
+            
+            // 如果指定了市场，自动聚焦到该市场的输入框
+            if (market) {
+              const focusedInput = document.querySelector(`.new-price-input[data-market="${market}"]`);
+              if (focusedInput) {
+                focusedInput.focus();
+                focusedInput.select();
+              }
+            }
+            
+            // 为每个更新按钮添加事件监听器
+            document.querySelectorAll('.update-price-btn').forEach(btn => {
+              // 使用 onclick 属性代替事件监听器，避免绑定问题
+              btn.onclick = function() {
+                const marketId = this.dataset.market;
+                const newPriceInput = document.querySelector(`.new-price-input[data-market="${marketId}"]`);
+                const newPrice = newPriceInput.value;
+                
+                if (!newPrice || isNaN(parseFloat(newPrice)) || parseFloat(newPrice) <= 0) {
+                  priceMessage.innerHTML = `<span class="text-danger">${getMarketName(marketId)}: 请输入有效的价格</span>`;
+                  setTimeout(() => priceMessage.textContent = '', 3000);
+                  return;
+                }
+                
+                updatePrice(sku, marketId, parseFloat(newPrice));
+              };
+            });
+          })
+          .catch(error => {
+            priceTableBody.innerHTML = '<tr><td colspan="4" class="text-center text-danger">获取价格信息失败</td></tr>';
+            console.error('获取价格失败:', error);
+          })
+          .finally(() => {
+            // 确保模态框显示，即使API调用失败
+            console.log('显示价格管理模态框');
+            
+            // 移除所有可能阻止显示的类
+            modal.classList.remove('d-none');
+            modal.classList.add('d-block');
+            modal.style.display = 'block';
+            modal.style.zIndex = '1055';
+            
+            // 添加一个遮罩层
+            const overlay = document.createElement('div');
+            overlay.className = 'modal-backdrop fade show';
+            overlay.id = 'priceModalOverlay';
+            document.body.appendChild(overlay);
+            
+            // 确保body有正确的样式
+            document.body.style.overflow = 'hidden';
+            
+            // 把遮罩层放在模态框后面
+            if (overlay.style.zIndex !== undefined && modal.style.zIndex !== undefined) {
+              overlay.style.zIndex = parseInt(modal.style.zIndex) - 1;
+            }
+          });
+      }
+
+      // 更新价格
+      function updatePrice(sku, market, newPrice) {
+        const priceMessage = document.getElementById('priceMessage');
+        
+        priceMessage.innerHTML = `<span class="text-info">正在更新${getMarketName(market)}价格，请稍候...</span>`;
+        
+        axios.post('/amzsku/api/price', { marketplaceId: market, skuCode: sku, price: newPrice })
+          .then(response => {
+            if (response.data.success) {
+              priceMessage.innerHTML = `<span class="text-success">${getMarketName(market)}价格更新成功</span>`;
+              setTimeout(() => {
+                // 刷新价格表格
+                showPriceModal(sku);
+              }, 1000);
+            } else {
+              priceMessage.innerHTML = `<span class="text-danger">${getMarketName(market)}价格更新失败: ${response.data.message}</span>`;
+            }
+          })
+          .catch(error => {
+            priceMessage.innerHTML = `<span class="text-danger">${getMarketName(market)}价格更新失败: ${error.response?.data?.message || error.message}</span>`;
+          });
+      }
+
+      // 刷新数据
+      function refreshData() {
+        loadSkuData(currentMarket);
+      }
+
+
+    });
+
+    // 将closePriceModal函数暴露到全局作用域，确保HTML中的onclick属性可以正确调用它。
+    window.closePriceModal = closePriceModal;
+    window.showPublishModal = showPublishModal;
+    window.closePublishModal = closePublishModal;
+
+  // 发布产品模态框
+  div#publishModal.modal
+    div.modal-dialog.modal-dialog-centered
+      div.modal-content
+        div.modal-header
+          h5.modal-title 发布产品到亚马逊
+          button(type="button", class="btn-close", onclick="closePublishModal()")
+        div.modal-body
+          form#publishForm
+            div.mb-3
+              label.form-label(for="publishSku") SKU编号
+              input#publishSku(type="text", class="form-control", readonly)
+            div.mb-3
+              label.form-label(for="publishMarketName") 目标市场
+              input#publishMarketName(type="text", class="form-control", readonly)
+            input#publishMarket(type="hidden")
+            div#publishMessage.mt-3
+        div.modal-footer
+          button(type="button", class="btn btn-secondary", onclick="closePublishModal()") 关闭
+          button(type="submit", class="btn btn-primary") 发布
+
+  // 价格管理模态框 - 支持多市场价格
+  div#priceModal.modal.d-none
+    div.modal-dialog.modal-dialog-centered.modal-lg
+      div.modal-content
+        div.modal-header
+          h5.modal-title 产品价格管理 - 所有市场
+          button(type="button", class="btn-close", onclick="closePriceModal()")
+        div.modal-body
+          input#priceSku(type="hidden")
+          input#priceMarket(type="hidden")
+          div#priceMessage.mt-3 mb-3
+          div.price-table
+            table(class="table table-striped table-sm")
+              thead
+                tr
+                  th 市场
+                  th 当前价格
+                  th 新价格
+                  th 操作
+              tbody#priceTableBody
+                tr
+                  td colspan="4" class="text-center" 加载中...
+        div.modal-footer
+          button(type="button", class="btn btn-secondary", onclick="closePriceModal()") 关闭

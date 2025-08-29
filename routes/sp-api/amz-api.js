@@ -46,6 +46,7 @@ async function getAccessToken(marketplaceId) {
 
     accessToken[marketplaceId].token = response.data.access_token;
     accessToken[marketplaceId].tokenExpires = Date.now() + (response.data.expires_in - 60) * 1000; // 提前1分钟过期
+    console.log('获取Access Token成功:', marketplaceId , response.data.access_token);
     return accessToken[marketplaceId].token;
   } catch (error) {
     console.error('获取Access Token失败:', error.response?.data || error.message);
@@ -300,5 +301,9 @@ router.get('/:orderId/items', async (req, res) => {
   }
 });
 
-module.exports = router;
+// 导出函数
+module.exports = {
+  router,
+  getAccessToken
+};
 

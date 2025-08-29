@@ -135,6 +135,17 @@ html(lang="zh-CN")
                 option(value="JPY") 日元
             .invalid-feedback 请输入有效的成本
 
+        .mb-3
+          label.form-label(for="asin") Amazon ASIN
+          input#asin.form-control(
+            type="text"
+            name="asin"
+            placeholder="例如: B08XJ1Y3Z4"
+            maxlength="10"
+            title="ASIN必须为10个字符"
+          )
+          .form-text 亚马逊标准识别码，可选字段，长度为10个字符
+
         .row.mb-4
           .col-md-6
             label.form-label(for="has_battery") 包含电池？
@@ -210,7 +221,8 @@ html(lang="zh-CN")
               has_battery: batteryCheckbox.checked,
               battery_type: batteryCheckbox.checked ? batteryTypeSelect.value : "None",
               purchase_cost: parseFloat(form.purchase_cost.value),
-              currency: form.currency.value
+              currency: form.currency.value,
+              asin: form.asin.value.trim()
             };
 
             // 调试输出

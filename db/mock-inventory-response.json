@@ -1,0 +1,62 @@
+{
+  "payload": {
+    "granularity": {
+      "granularityType": "string",
+      "granularityId": "string"
+    },
+    "inventorySummaries": [
+      {
+        "asin": "string",
+        "fnSku": "string",
+        "sellerSku": "string",
+        "condition": "string",
+        "inventoryDetails": {
+          "fulfillableQuantity": 0,
+          "inboundWorkingQuantity": 0,
+          "inboundShippedQuantity": 0,
+          "inboundReceivingQuantity": 0,
+          "reservedQuantity": {
+            "totalReservedQuantity": 0,
+            "pendingCustomerOrderQuantity": 0,
+            "pendingTransshipmentQuantity": 0,
+            "fcProcessingQuantity": 0
+          },
+          "researchingQuantity": {
+            "totalResearchingQuantity": 0,
+            "researchingQuantityBreakdown": [
+              {
+                "name": "researchingQuantityInShortTerm",
+                "quantity": 0
+              }
+            ]
+          },
+          "unfulfillableQuantity": {
+            "totalUnfulfillableQuantity": 0,
+            "customerDamagedQuantity": 0,
+            "warehouseDamagedQuantity": 0,
+            "distributorDamagedQuantity": 0,
+            "carrierDamagedQuantity": 0,
+            "defectiveQuantity": 0,
+            "expiredQuantity": 0
+          }
+        },
+        "lastUpdatedTime": "2025-08-24T17:10:13.957Z",
+        "productName": "string",
+        "totalQuantity": 0,
+        "stores": [
+          "string"
+        ]
+      }
+    ]
+  },
+  "pagination": {
+    "nextToken": "string"
+  },
+  "errors": [
+    {
+      "code": "string",
+      "message": "string",
+      "details": "string"
+    }
+  ]
+}

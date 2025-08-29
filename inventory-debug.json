@@ -1,0 +1,39 @@
+{
+  "asin": "B0CJPR1SWQ",
+  "fnSku": "X003ZATQZD",
+  "sellerSku": "2700K-2M",
+  "condition": "NewItem",
+  "inventoryDetails": {
+    "fulfillableQuantity": 0,
+    "inboundWorkingQuantity": 0,
+    "inboundShippedQuantity": 0,
+    "inboundReceivingQuantity": 0,
+    "reservedQuantity": {
+      "totalReservedQuantity": 0,
+      "pendingCustomerOrderQuantity": 0,
+      "pendingTransshipmentQuantity": 0,
+      "fcProcessingQuantity": 0
+    },
+    "researchingQuantity": {
+      "totalResearchingQuantity": 0,
+      "researchingQuantityBreakdown": []
+    },
+    "unfulfillableQuantity": {
+      "totalUnfulfillableQuantity": 0,
+      "customerDamagedQuantity": 0,
+      "warehouseDamagedQuantity": 0,
+      "distributorDamagedQuantity": 0,
+      "carrierDamagedQuantity": 0,
+      "defectiveQuantity": 0,
+      "expiredQuantity": 0
+    },
+    "futureSupplyQuantity": {
+      "reservedFutureSupplyQuantity": 0,
+      "futureSupplyBuyableQuantity": 0
+    }
+  },
+  "lastUpdatedTime": "",
+  "productName": "",
+  "totalQuantity": 0,
+  "stores": []
+}

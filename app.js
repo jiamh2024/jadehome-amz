@@ -36,7 +36,9 @@ var cpApiRouter = require('./routes/api/cp');
 var locaApiRouter = require('./routes/api/loca');
 var kvApiRouter = require('./routes/api/amz-pkv');
 
-var amzApiRouter = require('./routes/sp-api/amz-api');
+var amzApi = require('./routes/sp-api/amz-api');
+var amzApiRouter = amzApi.router;
+var amzSkuRouter = require('./routes/sp-api/amz-sku');
 var adsApiRouter = require('./routes/ads-api/ads');
 
 var app = express();
@@ -84,6 +86,7 @@ app.use('/amzkv', amzRouter);
 app.use('/amzfile', amzFileRouter);
 
 app.use('/amzorder', amzOrder);
+app.use('/amzsku', amzSkuRouter);
 app.use('/signin', signIn);
 app.use('/campaigns', campaigns);
 

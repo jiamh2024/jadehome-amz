@@ -1,0 +1,332 @@
+{
+    "sku": "LT19-TV",
+    "summaries": [
+        {
+            "marketplaceId": "A2EUQ1WTGCTBG2",
+            "asin": "B09Y5WGLZF",
+            "productType": "STRING_LIGHT",
+            "conditionType": "new_new",
+            "status": [
+                "DISCOVERABLE",
+                "BUYABLE"
+            ],
+            "fnSku": "X003JZ8WJP",
+            "itemName": "HOMINA Led Strip Lights 16.4ft/5m 150 RGB LEDs for 60-100in TV USB Backlight Kit with 24Key Remote 5050 Bias HDTV",
+            "createdDate": "2022-11-29T03:04:24.777Z",
+            "lastUpdatedDate": "2025-08-27T14:01:57.142Z",
+            "mainImage": {
+                "link": "https://m.media-amazon.com/images/I/51hUFLPvjYL.jpg",
+                "height": 500,
+                "width": 500
+            }
+        }
+    ],
+    "attributes": {
+        "variation_theme": [
+            {
+                "name": "SIZE_NAME"
+            }
+        ],
+        "contains_liquid_contents": [
+            {
+                "value": false,
+                "marketplace_id": "A2EUQ1WTGCTBG2"
+            }
+        ],
+        "occasion_type": [
+            {
+                "language_tag": "en_CA",
+                "value": "冬日节日",
+                "marketplace_id": "A2EUQ1WTGCTBG2"
+            }
+        ],
+        "item_package_weight": [
+            {
+                "unit": "grams",
+                "value": 90.0,
+                "marketplace_id": "A2EUQ1WTGCTBG2"
+            }
+        ],
+        "skip_offer": [
+            {
+                "value": false,
+                "marketplace_id": "A2EUQ1WTGCTBG2"
+            }
+        ],
+        "fulfillment_availability": [
+            {
+                "fulfillment_channel_code": "AMAZON_NA"
+            }
+        ],
+        "battery": [
+            {
+                "cell_composition": [
+                    {
+                        "value": "lithium_manganese_dioxide"
+                    }
+                ],
+                "weight": [
+                    {
+                        "unit": "grams",
+                        "value": 3.0
+                    }
+                ],
+                "marketplace_id": "A2EUQ1WTGCTBG2"
+            }
+        ],
+        "number_of_lithium_metal_cells": [
+            {
+                "value": 1,
+                "marketplace_id": "A2EUQ1WTGCTBG2"
+            }
+        ],
+        "recommended_browse_nodes": [
+            {
+                "value": "3130336011",
+                "marketplace_id": "A2EUQ1WTGCTBG2"
+            }
+        ],
+        "bullet_point": [
+            {
+                "language_tag": "en_CA",
+                "value": "Light Up Every Side of Your TV - 200in / 5m 150 leds(5050) light strip for 60-100 inch tv.",
+                "marketplace_id": "A2EUQ1WTGCTBG2"
+            },
+            {
+                "language_tag": "en_CA",
+                "value": "Perfect mood light and can improve image clarity, Relieve eye fatigue. Bring home theater-like enjoyment.",
+                "marketplace_id": "A2EUQ1WTGCTBG2"
+            },
+            {
+                "language_tag": "en_CA",
+                "value": "Dual Control - APP/24key remote-16 color changing-dimmable 4 modes. Control distance 19.6ft-26.2ft.",
+                "marketplace_id": "A2EUQ1WTGCTBG2"
+            },
+            {
+                "language_tag": "en_CA",
+                "value": "Easy to install - strong double sided adhesive tape installation, just paste is ok.",
+                "marketplace_id": "A2EUQ1WTGCTBG2"
+            },
+            {
+                "language_tag": "en_CA",
+                "value": "Safety - 5V USB powered, consumption less than 10W.",
+                "marketplace_id": "A2EUQ1WTGCTBG2"
+            }
+        ],
+        "hazmat": [
+            {
+                "aspect": "united_nations_regulatory_id",
+                "value": "1122110278",
+                "marketplace_id": "A2EUQ1WTGCTBG2"
+            }
+        ],
+        "lithium_battery": [
+            {
+                "packaging": [
+                    {
+                        "value": "batteries_contained_in_equipment"
+                    }
+                ],
+                "weight": [
+                    {
+                        "unit": "grams",
+                        "value": 3.0
+                    }
+                ],
+                "marketplace_id": "A2EUQ1WTGCTBG2"
+            }
+        ],
+        "product_description": [
+            {
+                "language_tag": "en_CA",
+                "value": "<p><b>HOMINA SMD 5050 light strip for TV</b> is manufactured to high standards with high quality materials. The 5050 lamp bead is classic for home décor, ideal for both energy consumption and brightness.</p> <p><b>Applications: </b><br> * Desinged for TV and Can be Widely used indoor<br> * DIY Decoration, whatever and wherever you like!<br></p> <p><b>Specifications:</b><br> * Light color: RGB (Red Green Blue) Flash SMD LED<br> * Consumption: 5w<br> * Storage temperature: -40 ~ +80<br> * Operating temperature: -25 ~ +60<br> * Lumens: 900LM<br> * Lifetime: 50,000+ hours<br> * Power Supply: DC 5V 1A <br></p> <p><b>Note:</b><br> * Please make sure that the mounting surface is clean. Then it will hold the adhesive tape.<br> * Please follow the cutting line when you need to cut the light ribbon.<br> * No longer than 16ft/5m.<br></p> <p><b>Package included:</b><br> * 1 x 5 Meter 5050 SMD RGB LED Strip Light<br> * 1 x IR Controller of USB Interface<br> * 1 x 24 Key Remote Control<br> </p>",
+                "marketplace_id": "A2EUQ1WTGCTBG2"
+            }
+        ],
+        "brand": [
+            {
+                "language_tag": "en_CA",
+                "value": "HOMINA",
+                "marketplace_id": "A2EUQ1WTGCTBG2"
+            }
+        ],
+        "supplier_declared_dg_hz_regulation": [
+            {
+                "value": "transportation",
+                "marketplace_id": "A2EUQ1WTGCTBG2"
+            }
+        ],
+        "cable": [
+            {
+                "length": [
+                    {
+                        "decimal_value": 5.0,
+                        "unit": "meters"
+                    }
+                ],
+                "marketplace_id": "A2EUQ1WTGCTBG2"
+            }
+        ],
+        "num_batteries": [
+            {
+                "quantity": 1,
+                "type": "cr2032",
+                "marketplace_id": "A2EUQ1WTGCTBG2"
+            }
+        ],
+        "generic_keyword": [
+            {
+                "language_tag": "en_CA",
+                "value": "led strip lights usb",
+                "marketplace_id": "A2EUQ1WTGCTBG2"
+            }
+        ],
+        "item_name": [
+            {
+                "language_tag": "en_CA",
+                "value": "HOMINA Led Strip Lights 16.4ft/5m 150 RGB Leds for 60-100in TV USB Backlight Kit with 24Key Remote 5050 Bias HDTV",
+                "marketplace_id": "A2EUQ1WTGCTBG2"
+            }
+        ],
+        "merchant_shipping_group": [
+            {
+                "value": "legacy-template-id",
+                "marketplace_id": "A2EUQ1WTGCTBG2"
+            }
+        ],
+        "list_price": [
+            {
+                "value": 21.99,
+                "currency": "CAD",
+                "marketplace_id": "A2EUQ1WTGCTBG2"
+            }
+        ],
+        "batteries_required": [
+            {
+                "value": true,
+                "marketplace_id": "A2EUQ1WTGCTBG2"
+            }
+        ],
+        "product_site_launch_date": [
+            {
+                "value": "2022-11-18T05:35:44.396Z",
+                "marketplace_id": "A2EUQ1WTGCTBG2"
+            }
+        ],
+        "condition_type": [
+            {
+                "value": "new_new",
+                "marketplace_id": "A2EUQ1WTGCTBG2"
+            }
+        ],
+        "merchant_suggested_asin": [
+            {
+                "value": "B09Y5WGLZF",
+                "marketplace_id": "A2EUQ1WTGCTBG2"
+            }
+        ],
+        "item_package_dimensions": [
+            {
+                "height": {
+                    "unit": "centimeters",
+                    "value": 2.0
+                },
+                "length": {
+                    "unit": "centimeters",
+                    "value": 22.0
+                },
+                "width": {
+                    "unit": "centimeters",
+                    "value": 10.0
+                },
+                "marketplace_id": "A2EUQ1WTGCTBG2"
+            }
+        ],
+        "material": [
+            {
+                "language_tag": "en_CA",
+                "value": "黄铜",
+                "marketplace_id": "A2EUQ1WTGCTBG2"
+            }
+        ],
+        "size": [
+            {
+                "language_tag": "en_CA",
+                "value": "16.4ft for 60\"-100\" TV",
+                "marketplace_id": "A2EUQ1WTGCTBG2"
+            }
+        ],
+        "warranty_description": [
+            {
+                "language_tag": "en_CA",
+                "value": "1 year",
+                "marketplace_id": "A2EUQ1WTGCTBG2"
+            }
+        ],
+        "manufacturer_contact_information": [
+            {
+                "language_tag": "en_CA",
+                "value": "Shenzhen Jadehome LTD.",
+                "marketplace_id": "A2EUQ1WTGCTBG2"
+            }
+        ],
+        "batteries_included": [
+            {
+                "value": true,
+                "marketplace_id": "A2EUQ1WTGCTBG2"
+            }
+        ],
+        "main_product_image_locator": [
+            {
+                "media_location": "https://m.media-amazon.com/images/I/61wBsyaYrTL.jpg",
+                "marketplace_id": "A2EUQ1WTGCTBG2"
+            }
+        ],
+        "purchasable_offer": [
+            {
+                "currency": "CAD",
+                "start_at": {
+                    "value": "2022-11-18T05:35:44.396Z"
+                },
+                "end_at": {
+                    "value": null
+                },
+                "audience": "ALL",
+                "discounted_price": [
+                    {
+                        "schedule": [
+                            {
+                                "end_at": "2028-08-01T07:00:00.000Z",
+                                "start_at": "2025-06-01T07:00:00.000Z",
+                                "value_with_tax": 14.99
+                            }
+                        ]
+                    }
+                ],
+                "our_price": [
+                    {
+                        "schedule": [
+                            {
+                                "value_with_tax": 21.89
+                            }
+                        ]
+                    }
+                ],
+                "marketplace_id": "A2EUQ1WTGCTBG2"
+            }
+        ],
+        "parentage_level": [
+            {
+                "marketplace_id": "A2EUQ1WTGCTBG2",
+                "value": "child"
+            }
+        ],
+        "child_parent_sku_relationship": [
+            {
+                "marketplace_id": "A2EUQ1WTGCTBG2",
+                "child_relationship_type": "variation",
+                "parent_sku": "LT-FA-UK"
+            }
+        ]
+    }
+}

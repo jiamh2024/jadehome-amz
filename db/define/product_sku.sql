@@ -24,3 +24,5 @@ CREATE TABLE `product_sku` (
   KEY `idx_sku_code` (`sku_code`),
   KEY `idx_father_sku` (`father_sku_code`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='产品SKU明细表(含父子SKU关系)';
+
+ALTER TABLE product_sku ADD COLUMN asin VARCHAR(10) AFTER currency;

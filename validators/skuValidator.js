@@ -11,6 +11,7 @@ exports.validateSku = [
   body('battery_type').isIn(['Lithium', 'Lead-acid', 'None']).withMessage('Invalid battery type'),
   body('purchase_cost').isFloat({ gt: 0 }).withMessage('Cost must be positive number'),
   body('currency').isLength({ min: 3, max: 3 }).withMessage('Currency must be 3 characters'),
+  body('asin').optional().isLength({ min: 10, max: 10 }).withMessage('ASIN must be 10 characters'),
 
   (req, res, next) => {
     const errors = validationResult(req);

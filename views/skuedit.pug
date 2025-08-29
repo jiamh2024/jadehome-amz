@@ -130,6 +130,17 @@ html(lang="en")
                 option(value="CAD") CAD
                 option(value="JPY") JPY
 
+        .row.mb-3
+          .col-md-6
+            label.form-label(for="asin") Amazon ASIN
+            input#asin.form-control(
+              type="text"
+              name="asin"
+              maxLength="10"
+              placeholder="e.g. B08X5G7Y6Z"
+            )
+            .form-text Amazon Standard Identification Number (10 characters)
+
         .row.mb-4
           .col-md-6
             label.form-label(for="has_battery") Contains Battery?
@@ -173,6 +184,7 @@ html(lang="en")
           document.getElementById('weight').value = sku.weight;
           document.getElementById('purchase_cost').value = sku.purchase_cost;
           document.getElementById('currency').value = sku.currency;
+          document.getElementById('asin').value = sku.asin || '';
           
           // Handle battery fields
           const hasBattery = sku.has_battery === 1 || sku.has_battery === true;
@@ -219,7 +231,8 @@ html(lang="en")
           has_battery: form.has_battery.checked,
           battery_type: form.battery_type.value,
           purchase_cost: parseFloat(form.purchase_cost.value),
-          currency: form.currency.value
+          currency: form.currency.value,
+          asin: form.asin.value
         };
 
         try {
