@@ -8,7 +8,7 @@ head
   link(href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css", rel="stylesheet")
   style.
     .form-container {
-      max-width: 1000px;
+      max-width: 1400px; /* 增加页面最大宽度 */
       margin: 0 auto;
       padding: 20px;
     }
@@ -64,8 +64,8 @@ body
           table#specsTable.table.table-striped.table-hover
             thead
               tr
-                th(style="width: 30%") 键名
-                th(style="width: 45%") 值
+                th(style="width: 50%", class="wider-key-column") 键名  <!-- 增加宽度到50% -->
+                th(style="width: 25%", class="narrow-value-column") 值     <!-- 减少宽度到25% -->
                 th(style="width: 10%") 序号
                 th(style="width: 15%") 操作
             tbody#specsBody

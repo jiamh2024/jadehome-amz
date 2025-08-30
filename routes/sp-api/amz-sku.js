@@ -160,11 +160,12 @@ async function batchCheckListingStatuses(marketplaceId, skuCodes) {
 async function getProductAttributes(skuCode, countryCode) {
   try {
     // 使用amz_pd_kv表（从之前的表结构看，这个表存储了产品规格键值对）
-    const [rows] = await db.query(
+    const rows = await db.query(
       `SELECT spec_key, spec_value FROM amz_pd_kv WHERE sku_code = ? AND country_code = ?`,
       [skuCode, countryCode.toLowerCase()]
     );
     
+    console.log('从数据库获取的产品属性:', rows);
     const attributes = {};
     rows.forEach(row => {
       attributes[row.spec_key] = row.spec_value;
@@ -183,6 +184,7 @@ async function getProductAttributes(skuCode, countryCode) {
 async function publishProductUsingListingsAPI(marketplaceId, skuData) {
   try {
     const { sku_code: skuCode, product_name, length, width, height, weight, has_battery, battery_type } = skuData;
+    //console.log('发布产品使用Listings API参数:', { skuCode, product_name, length, width, height, weight, has_battery, battery_type });
     
     // 1. 获取访问令牌
     const accessToken = await getAccessToken(marketplaceId);
@@ -193,43 +195,34 @@ async function publishProductUsingListingsAPI(marketplaceId, skuData) {
     // 3. 准备API请求数据
     const endpoint = MARKETPLACES[marketplaceId].endpoint;
     const url = `${endpoint}/listings/2021-08-01/items/${MARKETPLACES[marketplaceId].sellerid}/${skuCode}`;
+    console.log('发布产品使用Listings API URL:', url);
     
     const productData = {
-      productType: 'PRODUCT',
-      requirements: 'LISTING',
-      attributes: {
-        // 基础信息
-        sku: skuCode,
-        title: product_name,
-        description: attributes.description || `${product_name} 详细描述`,
-        brandName: attributes.brandName || 'Generic',
-        manufacturer: attributes.manufacturer || 'Generic',
-        // 分类信息
-        productCategory: attributes.productCategory || 'Home & Kitchen',
-        // 库存信息
-        fulfillmentLatency: '2', // 默认2天发货
-        // 销售条款
-        conditionType: 'New',
+      "productType": 'STRING_LIGHT',
+      "requirements": 'LISTING_PRODUCT_ONLY',
+      "categories": "STRING_LIGHT",
+      "description": attributes.description || `${product_name} 详细描述`,
+      "brandName": attributes.brandName || 'Generic',
+      "manufacturer": attributes.manufacturer || 'Generic',
+      "conditionType": 'New',
+      "attributes": {
+             "list_price": [
+            {
+                "currency": "CAD",
+                "value": 21.99,
+                "marketplace_id": "A2EUQ1WTGCTBG2"
+            }
+        ],
         // 图片信息（如果有）
-        ...(attributes.main_image_url ? { main_image_url: attributes.main_image_url } : {}),
+        ...(attributes.main_image_url ? { "main_image_url": attributes.main_image_url } : {}),
         // 其他属性
         ...attributes
       },
-      dimensions: {
-        length: length.toString(),
-        width: width.toString(),
-        height: height.toString(),
-        unit: 'CENTIMETERS'
-      },
-      weight: {
-        value: weight.toString(),
-        unit: 'KILOGRAMS'
-      },
       // 电池信息（如果产品含电池）
       ...(has_battery ? {
-        battery: {
-          type: battery_type,
-          is_contained: true
+        "battery": {
+          "type": battery_type,
+          "is_contained": true
         }
       } : {})
     };
@@ -237,7 +230,7 @@ async function publishProductUsingListingsAPI(marketplaceId, skuData) {
     console.log('准备发布的产品数据:', productData);
     
     // 4. 调用Amazon Listings Items API
-    const response = await axios.post(url, productData, {
+    const response = await axios.put(url, productData, {
       headers: {
         'x-amz-access-token': accessToken,
         'User-Agent': process.env.SP_API_USER_AGENT || 'My-App/1.0',
@@ -248,12 +241,12 @@ async function publishProductUsingListingsAPI(marketplaceId, skuData) {
     console.log(`产品发布成功 (${marketplaceId}, ${skuCode}):`, response.data);
     
     // 5. 如果产品有ASIN，更新数据库
-    if (response.data.asin) {
-      await db.execute(
-        'UPDATE product_sku SET asin = ? WHERE sku_code = ?',
-        [response.data.asin, skuCode]
-      );
-    }
+    //if (response.data.asin) {
+    //  await db.execute(
+    //    'UPDATE product_sku SET asin = ? WHERE sku_code = ?',
+    //    [response.data.asin, skuCode]
+    //  );
+    //}
     
     return response.data;
   } catch (error) {
@@ -558,7 +551,7 @@ router.get('/api/marketplaces', (req, res) => {
 });
 
 // API: 发布产品到亚马逊平台
-router.post('/api/publish', async (req, res) => {
+router.put('/api/publish', async (req, res) => {
   try {
     const { marketplaceId, skuCode } = req.body;
     
@@ -584,7 +577,7 @@ router.post('/api/publish', async (req, res) => {
         message: `SKU ${skuCode} 不存在或未启用`
       });
     }
-    
+    console.log('获取到的产品SKU基础数据:', skuData);
     // 发布产品
     const result = await publishProductUsingListingsAPI(marketplaceId, skuData);
     
@@ -603,7 +596,7 @@ router.post('/api/publish', async (req, res) => {
 });
 
 // API: 更新产品信息
-router.post('/api/update', async (req, res) => {
+router.patch('/api/update', async (req, res) => {
   try {
     const { marketplaceId, skuCode, updateData } = req.body;
     

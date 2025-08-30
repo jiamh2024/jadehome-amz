@@ -601,7 +601,7 @@ body
         // 根据操作类型调用不同的API
         if (actionType === 'update') {
           // 调用更新API
-          axios.post('/amzsku/api/update', { marketplaceId, skuCode: sku, updateData })
+          axios.patch('/amzsku/api/update', { marketplaceId, skuCode: sku, updateData })
             .then(response => {
               publishMessage.innerHTML = `<span class="text-success">${response.data.message}</span>`;
               setTimeout(() => {
@@ -614,7 +614,7 @@ body
             });
         } else {
           // 调用发布API
-          axios.post('/amzsku/api/publish', { marketplaceId, skuCode: sku })
+          axios.put('/amzsku/api/publish', { marketplaceId, skuCode: sku })
             .then(response => {
               publishMessage.innerHTML = `<span class="text-success">${response.data.message}</span>`;
               setTimeout(() => {
