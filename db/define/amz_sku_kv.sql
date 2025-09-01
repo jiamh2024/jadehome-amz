@@ -18,3 +18,6 @@ CREATE TABLE amz_pd_kv (
 ALTER TABLE amz_pd_kv 
 ADD COLUMN sort_order INT DEFAULT 0 COMMENT '排序顺序，由用户指定，数值越小越靠前',
 ADD INDEX (sort_order);
+
+ALTER TABLE amz_pd_kv
+MODIFY COLUMN spec_key VARCHAR(512) NOT NULL COMMENT '规格键名';

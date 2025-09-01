@@ -6,7 +6,7 @@
 
 var app = require('../app');
 var debug = require('debug')('jadehome:server');
-var https = require('https');
+var http = require('http');
 var fs = require('fs');
 
 console.log('Env: ' + process.env);
@@ -20,21 +20,21 @@ var credentials = {key: privateKey, cert: certificate};
  * Get port from environment and store in Express.
  */
 
-var httpsport = normalizePort(process.env.PORT || '3000');
-app.set('httpsport', httpsport);
+var httpport = normalizePort(process.env.PORT || '3000');
+app.set('httpport', httpport);
 
 /**
  * Create HTTP server.
  */
-var httpsserver = https.createServer(credentials, app);
+var httpserver = http.createServer(app);
 
 /**
  * Listen on provided port, on all network interfaces.
  */
 
-httpsserver.listen(httpsport);
-httpsserver.on('error', onError);
-httpsserver.on('listening', onListening);
+httpserver.listen(httpport);
+httpserver.on('error', onError);
+httpserver.on('listening', onListening);
 
 /**
  * Normalize a port into a number, string, or false.
@@ -89,7 +89,7 @@ function onError(error) {
  */
 
 function onListening() {
-  var addr = httpsserver.address();
+  var addr = httpserver.address();
   var bind = typeof addr === 'string'
     ? 'pipe ' + addr
     : 'port ' + addr.port;
