@@ -9,13 +9,13 @@ var debug = require('debug')('jadehome:server');
 var http = require('http');
 var fs = require('fs');
 
-console.log('Env: ' + process.env);
-console.log('Private key: ' + process.env.PRIVATE_KEY);
-console.log('Certificate: ' + process.env.CERTIFICATE);
+//console.log('Env: ' + process.env);
+//console.log('Private key: ' + process.env.PRIVATE_KEY);
+//console.log('Certificate: ' + process.env.CERTIFICATE);
 
-var privateKey  = fs.readFileSync(process.env.PRIVATE_KEY, 'utf8');
-var certificate = fs.readFileSync(process.env.CERTIFICATE, 'utf8');
-var credentials = {key: privateKey, cert: certificate};
+//var privateKey  = fs.readFileSync(process.env.PRIVATE_KEY, 'utf8');
+//var certificate = fs.readFileSync(process.env.CERTIFICATE, 'utf8');
+//var credentials = {key: privateKey, cert: certificate};
 /**
  * Get port from environment and store in Express.
  */
