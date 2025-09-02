@@ -297,25 +297,29 @@ html(lang="zh-CN")
         });
 
         // 计算AMZ当地运费 (考虑单位)
-        function calculateLocalShipping(length, width, height, weight, countryCode, lengthUnit, weightUnit) {
-          // 转换为标准单位(cm和kg)进行计算
-          const lengthCm = lengthUnit === 'inch' ? length * 2.54 : length;
-          const widthCm = lengthUnit === 'inch' ? width * 2.54 : width;
-          const heightCm = lengthUnit === 'inch' ? height * 2.54 : height;
-          const weightKg = weightUnit === 'lb' ? weight * 0.453592 : weight;
+        function calculateLocalShipping(length, width, height, weight, countryCode, lengthUnit, weightUnit, salePrice) {
+          // 转换为标准单位(cm和kg)进行计算 - 兼容中英文单位
+          const lengthCm = (lengthUnit === '英寸' || lengthUnit === 'inch') ? length * 2.54 : length;
+          const widthCm = (lengthUnit === '英寸' || lengthUnit === 'inch') ? width * 2.54 : width;
+          const heightCm = (lengthUnit === '英寸' || lengthUnit === 'inch') ? height * 2.54 : height;
+          const weightKg = (weightUnit === '磅' || weightUnit === 'lb') ? weight * 0.453592 : weight;
           
           // 这里是简化示例，实际应根据亚马逊的运费计算规则实现
-          if (!lengthCm || !widthCm || !heightCm || !weightKg) return 0;
+          if (!length || !width || !height || !weight) return 0;
           
-          const volume = lengthCm * widthCm * heightCm;
+          const volume = length * width * height;
           
           // 示例计算规则
           if (countryCode === 'US') {
-            return calculateUSShippingFee(length, width, height, weight);
+            return calculateUSShippingFee(length, width, height, weight, salePrice);
           } else if (countryCode === 'UK') {
-            return calculateUKShippingFee(length, width, height, weight);
+            return calculateUKShippingFee(length, width, height, weight, salePrice);
           } else if (countryCode === 'CA') {
-            return calculateCanadaShippingFee(length, width, height, weight);
+            return calculateCanadaShippingFee(length, width, height, weight, salePrice);
+          } else if (countryCode === 'SA') {
+            return calculateSaudiShippingFee(length, width, height, weight, salePrice);
+          } else if (countryCode === 'AE') {
+            return calculateUAEShippingFee(length, width, height, weight, salePrice);
           } else {
             return 0.0;
           }
@@ -324,7 +328,7 @@ html(lang="zh-CN")
         // 表单提交计算利润
         $('#profitCalculatorForm').submit(function(e) {
           e.preventDefault();
-          
+           
           // 获取输入值
           const purchasePrice = parseFloat($('#purchasePrice').val()) || 0;
           const shippingRate = parseFloat($('#shippingRate').val()) || 0;
@@ -334,7 +338,7 @@ html(lang="zh-CN")
           const weight = parseFloat($('#weight').val()) || 0;
           const salePrice = parseFloat($('#salePrice').val()) || 0;
           const exchangeRate = parseFloat($('#exchangeRate').val()) || 1;
-          
+           
           const countryOption = $('#countrySelect option:selected');
           const vatRate = parseFloat(countryOption.data('vat')) / 100 || 0;
           const commissionRate = parseFloat(countryOption.data('commission')) / 100 || 0;
@@ -342,21 +346,39 @@ html(lang="zh-CN")
           const currencyCode = countryOption.data('currency');
           const lengthUnit = countryOption.data('length-unit') || 'cm';
           const weightUnit = countryOption.data('weight-unit') || 'kg';
-          
+           
           const productOption = $('#productSelect option:selected');
           const productName = productOption.text().trim();
-          
+           
           // 计算各项成本（考虑单位转换）
           const purchaseCost = purchasePrice;
+           
+          // 海运费用（现在考虑体积重）
+          // 1. 转换为千克的实际重量
+          // 兼容'磅'和'lb'两种单位表示
+          const weightKg = (weightUnit === '磅' || weightUnit === 'lb') ? weight * 0.453592 : weight;
           
-          // 海运费用（重量需要转换）
-          const weightKg = weightUnit === '磅' ? weight * 0.453592 : weight;
-          const shippingCost = weightKg * shippingRate;
+          // 2. 计算体积重量（千克）
+          let dimensionalWeightKg = 0;
+          if (length && width && height) {
+              // 转换为厘米的尺寸
+              // 兼容'英寸'和'inch'两种单位表示
+              const lengthCm = (lengthUnit === '英寸' || lengthUnit === 'inch') ? length * 2.54 : length;
+              const widthCm = (lengthUnit === '英寸' || lengthUnit === 'inch') ? width * 2.54 : width;
+              const heightCm = (lengthUnit === '英寸' || lengthUnit === 'inch') ? height * 2.54 : height;
+              
+              // 海运体积重计算公式通常为：长×宽×高/6000（单位：cm，结果：kg）
+              dimensionalWeightKg = (lengthCm * widthCm * heightCm) / 6000;
+          }
+          
+          // 3. 取实际重量和体积重量中的较大者作为计费重量
+          const billableWeight = Math.max(weightKg, dimensionalWeightKg);
+          const shippingCost = billableWeight * shippingRate;
           
           // 当地运费（自动计算）
           const localShipping = calculateLocalShipping(
             length, width, height, weight, 
-            countryCode, lengthUnit, weightUnit
+            countryCode, lengthUnit, weightUnit, salePrice
           );
           
           // 税费和佣金（外币）
@@ -381,7 +403,16 @@ html(lang="zh-CN")
           
           // 显示成本明细
           $('#purchaseCostResult').text(`¥${purchaseCost.toFixed(2)}`);
-          $('#shippingCostResult').text(`¥${shippingCost.toFixed(2)} (${weight.toFixed(2)}${weightUnit} × ¥${shippingRate.toFixed(2)})`);
+          
+          // 更新海运费用显示，增加体积重信息
+          let shippingDetail = `¥${shippingCost.toFixed(2)}`;
+          if (dimensionalWeightKg > weightKg) {
+              shippingDetail += ` (体积重: ${dimensionalWeightKg.toFixed(2)}kg > 实际重: ${weightKg.toFixed(2)}kg)`;
+          } else if (dimensionalWeightKg > 0) {
+              shippingDetail += ` (实际重: ${weightKg.toFixed(2)}kg > 体积重: ${dimensionalWeightKg.toFixed(2)}kg)`;
+          }
+          $('#shippingCostResult').text(shippingDetail);
+          
           $('#vatCostResult').text(`${(vatRate*100).toFixed(2)}% = ${vatCost.toFixed(2)} ${currencyCode}`);
           $('#amzCommissionResult').text(`${(commissionRate*100).toFixed(2)}% = ${amzCommission.toFixed(2)} ${currencyCode}`);
           $('#localShippingResult').text(`${localShipping.toFixed(2)} ${currencyCode}`);

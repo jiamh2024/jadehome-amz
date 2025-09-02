@@ -103,6 +103,9 @@ html(lang="en")
               render: function(data) {
                 return `
                   <div class="table-actions">
+                    <a href="/cntyedit/${data.id}" class="btn btn-sm btn-primary">
+                      <i class="bi bi-pencil"></i>
+                    </a>
                     <a href="/api/country/${data.id}" class="btn btn-sm btn-info">
                       <i class="bi bi-eye"></i>
                     </a>

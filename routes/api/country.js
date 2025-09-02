@@ -128,9 +128,9 @@ router.put('/:id', async (req, res) => {
         vat_rate = ?,
         amz_commission_rate = ?,
         shipping_cost = ?,
-        local_delivery_rules = ?,
         length_unit = ?,
         weight_unit = ?,
+        local_delivery_rules = ?,
         updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
     `;

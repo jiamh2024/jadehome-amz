@@ -101,7 +101,7 @@ function calculateDimensionalWeight(length, width, height) {
    * @param {number} weight - 重量（磅）
    * @returns {number} 配送费（美元）
    */
-  function calculateUSShippingFee(length, width, height, weight) {
+  function calculateUSShippingFee(length, width, height, weight, salePrice) {
     // 1. 计算体积重量（磅）
     const dimensionalWeight = calculateDimensionalWeight(length, width, height);
     const billableWeight = Math.max(weight, dimensionalWeight);
@@ -112,16 +112,15 @@ function calculateDimensionalWeight(length, width, height) {
     // 3. 根据分类计算运费
     switch(productType) {
       case 'smallStandard':
-        return calculateSmallStandardFee(weight); // 计算小号标准运费,不考虑体积重量
+        return calculateSmallStandardFee(weight, salePrice); // 计算小号标准运费,不考虑体积重量
       case 'largeStandard':
-        return calculateLargeStandardFee(billableWeight);
+        return calculateLargeStandardFee(billableWeight, salePrice);
       case 'largeBulky':
-        return calculateLargeBulkyFee(billableWeight);
+        return calculateLargeBulkyFee(billableWeight, salePrice);
       default:
         throw new Error('未知的产品分类');
     }
   }
-  
 
 /**
  * 计算加拿大亚马逊物流配送费
@@ -131,7 +130,7 @@ function calculateDimensionalWeight(length, width, height) {
  * @param {number} weight 实际重量（千克）
  * @returns {number} 配送费用（加元）
  */
-function calculateCanadaShippingFee(length, width, height, weight) {
+function calculateCanadaShippingFee(length, width, height, weight, salePrice) {
   // 1. 计算体积重量（克）
   const dimensionalWeight = (length * width * height) / 5000;
   const weightGrams = weight * 1000; // 转换为克
@@ -151,11 +150,11 @@ function calculateCanadaShippingFee(length, width, height, weight) {
   // 3. 根据分类计算运费
   switch (sizeCategory) {
       case 'envelope':
-          return calculateEnvelopeFee(billedWeight);
+          return calculateEnvelopeFee(billedWeight, salePrice);
       case 'standard':
-          return calculateStandardFee(billedWeight);
+          return calculateStandardFee(billedWeight, salePrice);
       case 'oversize':
-          return calculateOversizeFee(billedWeight);
+          return calculateOversizeFee(billedWeight, salePrice);
       default:
           return 0;
   }
@@ -166,7 +165,7 @@ function calculateCanadaShippingFee(length, width, height, weight) {
 * @param {number} weight 计费重量（克）
 * @returns {number} 运费（加元）
 */
-function calculateEnvelopeFee(weight) {
+function calculateEnvelopeFee(weight, salePrice) {
   if (weight <= 100) return 4.46;
   if (weight <= 200) return 4.71;
   if (weight <= 300) return 5.01;
@@ -182,7 +181,7 @@ function calculateEnvelopeFee(weight) {
 * @param {number} weight 计费重量（克）
 * @returns {number} 运费（加元）
 */
-function calculateStandardFee(weight) {
+function calculateStandardFee(weight, salePrice) {
   if (weight <= 100) return 5.92;
   if (weight <= 200) return 6.12;
   if (weight <= 300) return 6.36;
@@ -210,7 +209,7 @@ function calculateStandardFee(weight) {
 * @param {number} weight 计费重量（克）
 * @returns {number} 运费（加元）
 */
-function calculateOversizeFee(weight) {
+function calculateOversizeFee(weight, salePrice) {
   if (weight <= 500) return 15.43;
   
   const additionalWeight = weight - 500;
@@ -227,7 +226,7 @@ function calculateOversizeFee(weight) {
  * @param {number} weight 实际重量（千克）
  * @returns {number} 配送费用（英镑）
  */
-function calculateUKShippingFee(length, width, height, weight) {
+function calculateUKShippingFee(length, width, height, weight, salePrice) {
   // 1. 计算体积重量（千克）
   const dimensionalWeightKg = (length * width * height) / 5000;
   const weightGrams = weight * 1000; // 转换为克
@@ -241,7 +240,7 @@ function calculateUKShippingFee(length, width, height, weight) {
   const category = determineCategory(length, width, height, weight, billedWeightKg);
   
   // 3. 根据分类计算运费
-  return calculateFeeByCategory(category, billedWeightGrams, billedWeightKg);
+  return calculateFeeByCategory(category, billedWeightGrams, billedWeightKg, salePrice);
 }
 
 /**
@@ -286,7 +285,7 @@ function determineCategory(length, width, height, weightKg, billedWeightKg) {
 /**
 * 根据分类计算运费
 */
-function calculateFeeByCategory(category, weightGrams, weightKg) {
+function calculateFeeByCategory(category, weightGrams, weightKg, salePrice) {
   switch (category) {
       case 'light_envelope':
           if (weightGrams <= 20) return 1.83;
@@ -362,29 +361,158 @@ console.log(calculateCanadaShippingFee(45, 34, 20, 5));     // Standard parcel
 console.log(calculateCanadaShippingFee(60, 45, 45, 1.5));   // Small oversize
 console.log(calculateCanadaShippingFee(70, 50, 50, 10));    // Oversize
 
-  /**
-   * 单位转换工具
-   */
-  const unitConverter = {
-    // 长度转换
-    convertLength(value, fromUnit, toUnit) {
-      const conversions = {
-        'cm': 1,
-        'inch': 2.54,
-        'm': 100,
-        'foot': 30.48
-      };
-      return value * conversions[fromUnit] / conversions[toUnit];
-    },
-    
-    // 重量转换
-    convertWeight(value, fromUnit, toUnit) {
-      const conversions = {
-        'kg': 1,
-        'lb': 0.453592,
-        'g': 0.001,
-        'oz': 0.0283495
-      };
-      return value * conversions[fromUnit] / conversions[toUnit];
-    }
-  };
+/**
+ * 计算阿联酋亚马逊物流配送费
+ * @param {number} length 长度（厘米）
+ * @param {number} width 宽度（厘米）
+ * @param {number} height 高度（厘米）
+ * @param {number} weight 实际重量（千克）
+ * @param {number} productPrice 商品销售单价（阿联酋迪拉姆）
+ * @returns {number} 配送费用（阿联酋迪拉姆）
+ */
+function calculateUAEShippingFee(length, width, height, weight, productPrice) {
+  // 1. 计算体积重量（千克）
+  const dimensionalWeight = (length * width * height) / 5000;
+  const billableWeight = Math.max(weight, dimensionalWeight);
+  const billableWeightGrams = billableWeight * 1000; // 转换为克
+  
+  // 2. 对产品进行分类 - 根据新的分类表格
+  let sizeCategory;
+  
+  // 小号信封
+  if (billableWeightGrams <= 100 && length <= 20 && width <= 15 && height <= 1) {
+      sizeCategory = 'small_envelope';
+  }
+  // 标准信封
+  else if (billableWeightGrams <= 500 && length <= 33 && width <= 23 && height <= 2.5) {
+      sizeCategory = 'standard_envelope';
+  }
+  // 大号信封
+  else if (billableWeightGrams <= 1000 && length <= 33 && width <= 23 && height <= 5) {
+      sizeCategory = 'large_envelope';
+  }
+  // 标准包裹
+  else if (billableWeightGrams <= 12000 && length <= 45 && width <= 34 && height <= 26) {
+      sizeCategory = 'standard_parcel';
+  }
+  // 大件
+  else {
+      sizeCategory = 'oversize';
+  }
+  
+  // 3. 根据分类计算运费
+  switch (sizeCategory) {
+      case 'small_envelope':
+          return calculateSmallEnvelopeFee(billableWeight, productPrice);
+      case 'standard_envelope':
+          return calculateStandardEnvelopeFee(billableWeight, productPrice);
+      case 'large_envelope':
+          return calculateLargeEnvelopeFee(billableWeight, productPrice);
+      case 'standard_parcel':
+          return calculateStandardParcelFee(billableWeight, productPrice);
+      case 'oversize':
+          return calculateOversizeFee(billableWeight, productPrice);
+      default:
+          return 0;
+  }
+}
+
+/**
+* 计算阿联酋小号信封运费
+* @param {number} weight 计费重量（千克）
+* @param {number} productPrice 商品销售单价（阿联酋迪拉姆）
+* @returns {number} 运费（阿联酋迪拉姆）
+*/
+function calculateSmallEnvelopeFee(weight, productPrice) {
+  // 适用于≤0.1千克的商品
+  if (weight > 0.1) return 7.5; // 如果超出重量范围，返回最高费用
+  
+  // 根据商品单价选择不同的费用
+  return productPrice <= 25 ? 5.5 : 7.5;
+}
+
+/**
+* 计算阿联酋标准信封运费
+* @param {number} weight 计费重量（千克）
+* @param {number} productPrice 商品销售单价（阿联酋迪拉姆）
+* @returns {number} 运费（阿联酋迪拉姆）
+*/
+function calculateStandardEnvelopeFee(weight, productPrice) {
+  const isLowPrice = productPrice <= 25;
+  
+  if (weight <= 0.1) return isLowPrice ? 6.0 : 8.0;
+  if (weight <= 0.2) return isLowPrice ? 6.2 : 8.2;
+  if (weight <= 0.5) return isLowPrice ? 6.5 : 8.5;
+  
+  return isLowPrice ? 6.5 : 8.5; // 超出范围返回最高费用
+}
+
+/**
+* 计算阿联酋大号信封运费
+* @param {number} weight 计费重量（千克）
+* @param {number} productPrice 商品销售单价（阿联酋迪拉姆）
+* @returns {number} 运费（阿联酋迪拉姆）
+*/
+function calculateLargeEnvelopeFee(weight, productPrice) {
+  // 适用于≤1千克的商品
+  if (weight > 1) return 9.0; // 超出范围返回最高费用
+  
+  return productPrice <= 25 ? 7.0 : 9.0;
+}
+
+/**
+* 计算阿联酋标准包裹运费
+* @param {number} weight 计费重量（千克）
+* @param {number} productPrice 商品销售单价（阿联酋迪拉姆）
+* @returns {number} 运费（阿联酋迪拉姆）
+*/
+function calculateStandardParcelFee(weight, productPrice) {
+  const isLowPrice = productPrice <= 25;
+  console.log('Weight, price:', weight, productPrice);
+  
+  if (weight <= 0.25) return isLowPrice ? 7.2 : 9.2;
+  if (weight <= 0.5) return isLowPrice ? 7.5 : 9.5;
+  if (weight <= 1) return isLowPrice ? 8.5 : 10.5;
+  if (weight <= 1.5) return isLowPrice ? 9 : 11;
+  if (weight <= 2) return isLowPrice ? 9.5 : 11.5;
+  if (weight <= 3) return isLowPrice ? 10.5 : 12.5;
+  if (weight <= 4) return isLowPrice ? 11.5 : 13.5;
+  if (weight <= 5) return isLowPrice ? 12.5 : 14.5;
+  if (weight <= 6) return isLowPrice ? 13.5 : 15.5;
+  if (weight <= 7) return isLowPrice ? 14.5 : 16.5;
+  if (weight <= 8) return isLowPrice ? 15.5 : 17.5;
+  if (weight <= 9) return isLowPrice ? 16.5 : 18.5;
+  if (weight <= 10) return isLowPrice ? 17.5 : 19.5;
+  if (weight <= 11) return isLowPrice ? 18.5 : 20.5;
+  if (weight <= 12) return isLowPrice ? 19.5 : 21.5;
+  
+  return isLowPrice ? 19.5 : 21.5; // 超出范围返回最高费用
+}
+
+/**
+* 计算阿联酋大件包裹运费
+* @param {number} weight 计费重量（千克）
+* @param {number} productPrice 商品销售单价（阿联酋迪拉姆）
+* @returns {number} 运费（阿联酋迪拉姆）
+*/
+function calculateOversizeFee(weight, productPrice) {
+  const isLowPrice = productPrice <= 25;
+  
+  if (weight <= 1) return isLowPrice ? 10.5 : 12.5;
+  if (weight <= 2) return isLowPrice ? 11.5 : 13.5;
+  if (weight <= 3) return isLowPrice ? 12.5 : 14.5;
+  if (weight <= 4) return isLowPrice ? 13.5 : 15.5;
+  if (weight <= 5) return isLowPrice ? 14.5 : 16.5;
+  if (weight <= 6) return isLowPrice ? 15.5 : 17.5;
+  if (weight <= 7) return isLowPrice ? 16.5 : 18.5;
+  if (weight <= 8) return isLowPrice ? 17.5 : 19.5;
+  if (weight <= 9) return isLowPrice ? 18.5 : 20.5;
+  if (weight <= 10) return isLowPrice ? 19.5 : 21.5;
+  if (weight <= 15) return isLowPrice ? 24.5 : 26.5;
+  if (weight <= 20) return isLowPrice ? 29.5 : 31.5;
+  if (weight <= 25) return isLowPrice ? 34.5 : 36.5;
+  if (weight <= 30) return isLowPrice ? 39.5 : 41.5;
+  
+  return isLowPrice ? 39.5 : 41.5; // 超出范围返回最高费用
+}
+

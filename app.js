@@ -90,6 +90,9 @@ app.use('/amzsku', amzSkuRouter);
 app.use('/signin', signIn);
 app.use('/campaigns', campaigns);
 
+// 在现有路由配置后添加
+app.use('/cntyedit', require('./routes/cnty-edit'));
+
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
