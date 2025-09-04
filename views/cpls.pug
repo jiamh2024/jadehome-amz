@@ -31,6 +31,17 @@ html(lang="zh-CN")
       .battery-icon {
         color: #28a745;
       }
+      .product-image {
+        width: 60px;
+        height: 60px;
+        object-fit: cover;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      .image-modal-img {
+        max-width: 90%;
+        max-height: 80vh;
+      }
 
   body
     .container.container-main
@@ -51,6 +62,7 @@ html(lang="zh-CN")
           table#competitorsTable.table.table-striped.table-hover(style="display: none")
             thead
               tr
+                th 产品图片
                 th 产品规格
                 th 品牌
                 th 国家
@@ -74,12 +86,24 @@ html(lang="zh-CN")
               button.btn.btn-secondary(type="button" data-bs-dismiss="modal") 取消
               button#confirmDelete.btn.btn-danger(type="button") 确认删除
 
+      #imageModal.modal.fade(tabindex="-1")
+        .modal-dialog.modal-lg
+          .modal-content
+            .modal-header
+              h5.modal-title 产品图片
+              button.btn-close(type="button" data-bs-dismiss="modal" aria-label="关闭")
+            .modal-body.d-flex.justify-content-center.align-items-center
+              img#modalImage.image-modal-img(src="" alt="产品大图")
+
     script(src="https://code.jquery.com/jquery-3.7.0.min.js")
     script(src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js")
     script(src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js")
     script(src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js")
     script.
       $(document).ready(function() {
+        // 初始化模态框
+        const imageModal = new bootstrap.Modal('#imageModal');
+        
         // 初始化DataTable
         const table = $('#competitorsTable').DataTable({
           responsive: true,
@@ -87,6 +111,18 @@ html(lang="zh-CN")
             url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/zh.json'
           },
           columns: [
+            {
+              data: 'image_url_1',
+              render: function(data, type, row) {
+                if (data) {
+                  // 如果有图片，显示缩略图并支持点击查看大图
+                  return `<img class="product-image" src="${data}" alt="产品图片" data-full-src="${data}">`;
+                } else {
+                  // 如果没有图片，显示默认图标
+                  return '<i class="bi bi-image text-muted" style="font-size: 2rem;"></i>';
+                }
+              }
+            },
             { data: 'product_name' },
             { data: 'brand' },
             { data: 'country_code' },
@@ -118,23 +154,31 @@ html(lang="zh-CN")
                 return data ? '<i class="bi bi-battery-full battery-icon"></i>' : '-';
               }
             },
-            {
-              data: null,
-              orderable: false,
-              render: function(data) {
-                return `
-                  <div class="table-actions">
-                    <a href="/cp/${data.id}" class="btn btn-sm btn-info me-1" title="查看详情">
-                      <i class="bi bi-eye"></i>
-                    </a>
-                    <button class="btn btn-sm btn-danger delete-btn" data-id="${data.id}" data-name="${data.product_name}" title="删除">
-                      <i class="bi bi-trash"></i>
-                    </button>
-                  </div>
-                `;
-              }
+            {              
+              data: null,              
+              orderable: false,              
+              // 在操作列的render函数中，详情和删除按钮之间添加编辑按钮              
+              render: function(data) {                
+                return `                  
+                  <div class="table-actions">                    
+                    <a href="/cp-edit/${data.id}" class="btn btn-sm btn-primary me-1" title="编辑信息">                      
+                      <i class="bi bi-pencil"></i>                    
+                    </a>                    
+                    <button class="btn btn-sm btn-danger delete-btn" data-id="${data.id}" data-name="${data.product_name}" title="删除">                      
+                      <i class="bi bi-trash"></i>                    
+                    </button>                  
+                  </div>                
+                `;              
+              }            
             }
           ]
+        });
+
+        // 点击图片查看大图
+        $(document).on('click', '.product-image', function() {
+          const fullSrc = $(this).data('full-src');
+          $('#modalImage').attr('src', fullSrc);
+          imageModal.show();
         });
 
         // 显示加载动画

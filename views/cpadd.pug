@@ -31,6 +31,14 @@ html(lang="zh-CN")
       .dimension-inputs .input-group {
         flex: 1;
       }
+      .image-preview {
+        width: 100%;
+        max-width: 200px;
+        margin-top: 10px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        display: none;
+      }
 
   body
     .container.form-container
@@ -97,6 +105,26 @@ html(lang="zh-CN")
               input#has_battery.form-check-input(type="checkbox" name="has_battery")
               label.form-check-label(for="has_battery") 是
 
+        // 添加图片上传字段
+        .row.mb-3
+          .col-md-12
+            label.form-label 产品图片上传（最多3张）
+            .mb-3
+              label.form-label 图片1（主图）
+              input#image1.form-control(type="file" name="image1" accept="image/*")
+              img#preview1.image-preview(src="" alt="图片预览")
+              small.form-text.text-muted 支持JPG、PNG格式，最大5MB
+            .mb-3
+              label.form-label 图片2
+              input#image2.form-control(type="file" name="image2" accept="image/*")
+              img#preview2.image-preview(src="" alt="图片预览")
+              small.form-text.text-muted 支持JPG、PNG格式，最大5MB
+            .mb-3
+              label.form-label 图片3
+              input#image3.form-control(type="file" name="image3" accept="image/*")
+              img#preview3.image-preview(src="" alt="图片预览")
+              small.form-text.text-muted 支持JPG、PNG格式，最大5MB
+
         .d-flex.justify-content-between
           a.btn.btn-secondary(href="/cpls") 
             i.bi.bi-arrow-left
@@ -120,28 +148,65 @@ html(lang="zh-CN")
         const toastMessage = document.getElementById('toastMessage');
         const toast = new bootstrap.Toast(toastEl);
         
+        // 图片预览功能
+        function setupImagePreview(inputId, previewId) {
+          const input = document.getElementById(inputId);
+          const preview = document.getElementById(previewId);
+          
+          input.addEventListener('change', function() {
+            if (this.files && this.files[0]) {
+              const reader = new FileReader();
+              
+              reader.onload = function(e) {
+                preview.src = e.target.result;
+                preview.style.display = 'block';
+              }
+              
+              reader.readAsDataURL(this.files[0]);
+            } else {
+              preview.src = '';
+              preview.style.display = 'none';
+            }
+          });
+        }
+        
+        // 设置所有图片预览
+        setupImagePreview('image1', 'preview1');
+        setupImagePreview('image2', 'preview2');
+        setupImagePreview('image3', 'preview3');
+        
         form.addEventListener('submit', async function(e) {
           e.preventDefault();
           
-          const formData = {
-            product_name: form.product_name.value,
-            brand: form.brand.value,
-            country_code: form.country_code.value,
-            sale_price: parseFloat(form.sale_price.value),
-            length: form.length.value ? parseFloat(form.length.value) : null,
-            width: form.width.value ? parseFloat(form.width.value) : null,
-            height: form.height.value ? parseFloat(form.height.value) : null,
-            weight: form.weight.value ? parseFloat(form.weight.value) : null,
-            has_battery: form.has_battery.checked ? 1 : 0
-          };
+          // 使用FormData提交表单数据和文件
+          const formData = new FormData();
+          formData.append('product_name', form.product_name.value);
+          formData.append('brand', form.brand.value);
+          formData.append('country_code', form.country_code.value);
+          formData.append('sale_price', form.sale_price.value);
+          
+          if (form.length.value) formData.append('length', form.length.value);
+          if (form.width.value) formData.append('width', form.width.value);
+          if (form.height.value) formData.append('height', form.height.value);
+          if (form.weight.value) formData.append('weight', form.weight.value);
+          formData.append('has_battery', form.has_battery.checked ? 1 : 0);
+          
+          // 添加图片文件
+          if (form.image1.files.length > 0) {
+            formData.append('image1', form.image1.files[0]);
+          }
+          if (form.image2.files.length > 0) {
+            formData.append('image2', form.image2.files[0]);
+          }
+          if (form.image3.files.length > 0) {
+            formData.append('image3', form.image3.files[0]);
+          }
           
           try {
             const response = await fetch('/api/cp', {
               method: 'POST',
-              headers: {
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify(formData)
+              body: formData
+              // 不设置Content-Type，让浏览器自动设置
             });
             
             const result = await response.json();
@@ -149,6 +214,10 @@ html(lang="zh-CN")
             if (response.ok) {
               showToast('success', '操作成功', '竞品信息已成功添加！');
               form.reset();
+              // 重置图片预览
+              document.getElementById('preview1').style.display = 'none';
+              document.getElementById('preview2').style.display = 'none';
+              document.getElementById('preview3').style.display = 'none';
             } else {
               showToast('danger', '操作失败', result.error || '添加竞品信息时出错');
             }

@@ -1,0 +1,138 @@
+doctype html
+html(lang="zh-CN")
+  head
+    title= title
+    meta(charset="UTF-8")
+    meta(name="viewport" content="width=device-width, initial-scale=1.0")
+    link(href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet")
+    link(href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet")
+    style.
+      .container-main {
+        max-width: 900px;
+        margin: 2rem auto;
+        padding: 2rem;
+      }
+      .detail-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+      }
+      .product-image {
+        max-width: 100%;
+        height: auto;
+        border-radius: 8px;
+        margin-bottom: 1rem;
+      }
+      .image-gallery {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 1.5rem;
+      }
+      .thumbnail {
+        width: 80px;
+        height: 80px;
+        object-fit: cover;
+        border-radius: 4px;
+        cursor: pointer;
+        border: 2px solid transparent;
+      }
+      .thumbnail.active {
+        border-color: #0d6efd;
+      }
+      .detail-item {
+        margin-bottom: 1rem;
+      }
+      .detail-label {
+        font-weight: bold;
+        color: #666;
+      }
+
+  body
+    .container.container-main
+      .detail-header
+        h1 
+          i.bi.bi-bar-chart3
+          span.ms-2 #{title}
+        a.btn.btn-secondary(href="/cp-ls") 
+          i.bi.bi-arrow-left
+          span.ms-2 返回列表
+
+      .card
+        .card-body
+          // 产品图片展示
+          if competitor.image_url_1 || competitor.image_url_2 || competitor.image_url_3
+            div.image-gallery
+              if competitor.image_url_1
+                img.thumbnail.active(src=competitor.image_url_1 alt="产品图片1")
+              if competitor.image_url_2
+                img.thumbnail(src=competitor.image_url_2 alt="产品图片2")
+              if competitor.image_url_3
+                img.thumbnail(src=competitor.image_url_3 alt="产品图片3")
+            
+            img#mainImage.product-image(src=competitor.image_url_1 || competitor.image_url_2 || competitor.image_url_3 alt="产品图片")
+          else
+            div.text-center.p-5
+              i.bi.bi-image.text-muted(style="font-size: 5rem;")
+              p.text-muted mt-2 暂无产品图片
+
+          // 产品基本信息
+          .row
+            .col-md-6
+              .detail-item
+                span.detail-label 产品规格：
+                span #{competitor.product_name}
+              .detail-item
+                span.detail-label 品牌：
+                span #{competitor.brand}
+              .detail-item
+                span.detail-label 国家：
+                span #{competitor.country_code}
+              .detail-item
+                span.detail-label 销售价格：
+                - const salePrice = parseFloat(competitor.sale_price) || 0;
+                span.font-weight-bold.text-primary ¥#{salePrice.toFixed(2)}
+            .col-md-6
+              .detail-item
+                span.detail-label 尺寸(L×W×H)：
+                - const dimensions = [];
+                - if (competitor.length) dimensions.push(competitor.length + 'cm');
+                - if (competitor.width) dimensions.push(competitor.width + 'mm');
+                - if (competitor.height) dimensions.push(competitor.height + 'cm');
+                span= dimensions.join(' × ') || '-' 
+              .detail-item
+                span.detail-label 重量：
+                span #{competitor.weight ? competitor.weight + 'kg' : '-'}
+              .detail-item
+                span.detail-label 带电：
+                span= competitor.has_battery ? '<i class="bi bi-battery-full text-success"></i>' : '-'
+              .detail-item
+                span.detail-label 创建时间：
+                span #{competitor.created_at ? new Date(competitor.created_at).toLocaleString() : '-'}
+
+          // 其他信息
+          if competitor.updated_at && competitor.updated_at !== competitor.created_at
+            .detail-item
+              span.detail-label 更新时间：
+              span #{new Date(competitor.updated_at).toLocaleString()}
+
+    script(src="https://code.jquery.com/jquery-3.7.0.min.js")
+    script(src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js")
+    script.
+      // 缩略图切换功能
+      $('.thumbnail').on('click', function() {
+        const imgSrc = $(this).attr('src');
+        $('#mainImage').attr('src', imgSrc);
+        
+        // 更新激活状态
+        $('.thumbnail').removeClass('active');
+        $(this).addClass('active');
+      });
+
+      // 处理URL参数中的错误信息
+      const urlParams = new URLSearchParams(window.location.search);
+      const errorMsg = urlParams.get('error');
+      if (errorMsg) {
+        alert('错误：' + errorMsg);
+        // 可以在这里添加更友好的错误提示组件
+      }

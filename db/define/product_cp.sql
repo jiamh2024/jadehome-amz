@@ -15,3 +15,9 @@ CREATE TABLE product_cp (
     INDEX (country_code),
     INDEX (product_name)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Competitor product information for market analysis';
+
+
+ALTER TABLE product_cp
+ADD COLUMN image_url_1 VARCHAR(255) NULL COMMENT '竞品图片1链接',
+ADD COLUMN image_url_2 VARCHAR(255) NULL COMMENT '竞品图片2链接',
+ADD COLUMN image_url_3 VARCHAR(255) NULL COMMENT '竞品图片3链接';

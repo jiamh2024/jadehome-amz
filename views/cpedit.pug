@@ -1,0 +1,265 @@
+doctype html
+html(lang="zh-CN")
+  head
+    title 编辑竞品信息
+    meta(charset="UTF-8")
+    meta(name="viewport" content="width=device-width, initial-scale=1.0")
+    link(href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet")
+    link(href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet")
+    style.
+      .form-container {
+        max-width: 800px;
+        margin: 2rem auto;
+        padding: 2rem;
+        box-shadow: 0 0 15px rgba(0,0,0,0.1);
+        border-radius: 8px;
+      }
+      .form-header {
+        margin-bottom: 2rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid #dee2e6;
+      }
+      .required-field::after {
+        content: " *";
+        color: #dc3545;
+      }
+      .dimension-inputs {
+        display: flex;
+        gap: 15px;
+      }
+      .dimension-inputs .input-group {
+        flex: 1;
+      }
+      .image-preview {
+        width: 100%;
+        max-width: 200px;
+        margin-top: 10px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        display: none;
+      }
+      .current-image {
+        width: 100px;
+        height: 100px;
+        object-fit: cover;
+        border-radius: 4px;
+        margin-right: 10px;
+        margin-bottom: 10px;
+      }
+
+  body
+    .container.form-container
+      .form-header
+        h1 
+          i.bi.bi-pencil-square
+          span.ms-2 编辑竞品信息
+        p.text-muted 请修改竞品详细信息
+
+      form#competitorForm
+        input(type="hidden" name="id" value=competitor.id)
+        
+        .row.mb-3
+          .col-md-6
+            label.form-label.required-field(for="product_name") 产品规格名称
+            input#product_name.form-control(type="text" name="product_name" value=competitor.product_name required)
+
+          .col-md-6
+            label.form-label.required-field(for="brand") 品牌
+            input#brand.form-control(type="text" name="brand" value=competitor.brand required)
+
+        .row.mb-3
+          .col-md-6
+            label.form-label.required-field(for="country_code") 国家代码
+            select#country_code.form-select(name="country_code" required)
+              option(value="") -- 选择国家 --
+              option(value="US" selected=(competitor.country_code === 'US')) 美国 (US)
+              option(value="UK" selected=(competitor.country_code === 'UK')) 英国 (UK)
+              option(value="DE" selected=(competitor.country_code === 'DE')) 德国 (DE)
+              option(value="JP" selected=(competitor.country_code === 'JP')) 日本 (JP)
+              option(value="CN" selected=(competitor.country_code === 'CN')) 中国 (CN)
+
+          .col-md-6
+            label.form-label.required-field(for="sale_price") 销售价格
+            .input-group
+              span.input-group-text ¥
+              input#sale_price.form-control(type="number" name="sale_price" step="0.01" min="0" value=competitor.sale_price required)
+
+        .row.mb-3
+          .col-md-12
+            label.form-label(for="dimensions") 产品尺寸 (cm)
+            .dimension-inputs
+              .input-group
+                span.input-group-text 长
+                input#length.form-control(type="number" name="length" step="0.01" min="0" value=competitor.length)
+                span.input-group-text cm
+              .input-group
+                span.input-group-text 宽
+                input#width.form-control(type="number" name="width" step="0.01" min="0" value=competitor.width)
+                span.input-group-text cm
+              .input-group
+                span.input-group-text 高
+                input#height.form-control(type="number" name="height" step="0.01" min="0" value=competitor.height)
+                span.input-group-text cm
+
+        .row.mb-4
+          .col-md-6
+            label.form-label(for="weight") 产品重量
+            .input-group
+              input#weight.form-control(type="number" name="weight" step="0.001" min="0" value=competitor.weight)
+              span.input-group-text kg
+
+          .col-md-6
+            label.form-label(for="has_battery") 是否带电
+            .form-check.mt-2
+              input#has_battery.form-check-input(type="checkbox" name="has_battery" checked=competitor.has_battery)
+              label.form-check-label(for="has_battery") 是
+
+        // 添加图片上传字段
+        .row.mb-3
+          .col-md-12
+            label.form-label 产品图片上传（最多3张）
+            
+            // 当前图片显示
+            if competitor.image_url_1 || competitor.image_url_2 || competitor.image_url_3
+              .mb-3
+                p 现有图片：
+                if competitor.image_url_1
+                  img.current-image(src=competitor.image_url_1 alt="现有图片1")
+                  input(type="hidden" name="existing_image1" value=competitor.image_url_1)
+                if competitor.image_url_2
+                  img.current-image(src=competitor.image_url_2 alt="现有图片2")
+                  input(type="hidden" name="existing_image2" value=competitor.image_url_2)
+                if competitor.image_url_3
+                  img.current-image(src=competitor.image_url_3 alt="现有图片3")
+                  input(type="hidden" name="existing_image3" value=competitor.image_url_3)
+                p.text-muted 上传新图片将替换现有图片
+            
+            .mb-3
+              label.form-label 图片1（主图）
+              input#image1.form-control(type="file" name="image1" accept="image/*")
+              img#preview1.image-preview(src="" alt="图片预览")
+              small.form-text.text-muted 支持JPG、PNG格式，最大5MB
+            .mb-3
+              label.form-label 图片2
+              input#image2.form-control(type="file" name="image2" accept="image/*")
+              img#preview2.image-preview(src="" alt="图片预览")
+              small.form-text.text-muted 支持JPG、PNG格式，最大5MB
+            .mb-3
+              label.form-label 图片3
+              input#image3.form-control(type="file" name="image3" accept="image/*")
+              img#preview3.image-preview(src="" alt="图片预览")
+              small.form-text.text-muted 支持JPG、PNG格式，最大5MB
+
+        .d-flex.justify-content-between
+          a.btn.btn-secondary(href="/cpls")
+            i.bi.bi-arrow-left
+            span.ms-2 返回列表
+          button.btn.btn-primary(type="submit")
+            i.bi.bi-save
+            span.ms-2 更新信息
+
+      #responseToast.toast.position-fixed.top-0.end-0.m-3(style="z-index: 1100")
+        .toast-header
+          strong#toastTitle.me-auto 通知
+          button.btn-close(type="button" data-bs-dismiss="toast")
+        .toast-body#toastMessage
+
+    script(src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js")
+    script.
+      document.addEventListener('DOMContentLoaded', function() {
+        const form = document.getElementById('competitorForm');
+        const toastEl = document.getElementById('responseToast');
+        const toastTitle = document.getElementById('toastTitle');
+        const toastMessage = document.getElementById('toastMessage');
+        const toast = new bootstrap.Toast(toastEl);
+        
+        // 图片预览功能
+        function setupImagePreview(inputId, previewId) {
+          const input = document.getElementById(inputId);
+          const preview = document.getElementById(previewId);
+          
+          input.addEventListener('change', function() {
+            if (this.files && this.files[0]) {
+              const reader = new FileReader();
+              
+              reader.onload = function(e) {
+                preview.src = e.target.result;
+                preview.style.display = 'block';
+              }
+              
+              reader.readAsDataURL(this.files[0]);
+            } else {
+              preview.src = '';
+              preview.style.display = 'none';
+            }
+          });
+        }
+        
+        // 设置所有图片预览
+        setupImagePreview('image1', 'preview1');
+        setupImagePreview('image2', 'preview2');
+        setupImagePreview('image3', 'preview3');
+        
+        form.addEventListener('submit', async function(e) {
+          e.preventDefault();
+          
+          // 使用FormData提交表单数据和文件
+          const formData = new FormData();
+          formData.append('id', form.id.value);
+          formData.append('product_name', form.product_name.value);
+          formData.append('brand', form.brand.value);
+          formData.append('country_code', form.country_code.value);
+          formData.append('sale_price', form.sale_price.value);
+          
+          if (form.length.value) formData.append('length', form.length.value);
+          if (form.width.value) formData.append('width', form.width.value);
+          if (form.height.value) formData.append('height', form.height.value);
+          if (form.weight.value) formData.append('weight', form.weight.value);
+          formData.append('has_battery', form.has_battery.checked ? 1 : 0);
+          
+          // 添加现有图片路径
+          if (form.existing_image1) formData.append('existing_image1', form.existing_image1.value);
+          if (form.existing_image2) formData.append('existing_image2', form.existing_image2.value);
+          if (form.existing_image3) formData.append('existing_image3', form.existing_image3.value);
+          
+          // 添加新上传的图片文件
+          if (form.image1.files.length > 0) {
+            formData.append('image1', form.image1.files[0]);
+          }
+          if (form.image2.files.length > 0) {
+            formData.append('image2', form.image2.files[0]);
+          }
+          if (form.image3.files.length > 0) {
+            formData.append('image3', form.image3.files[0]);
+          }
+          
+          try {
+            const response = await fetch('/api/cp/' + form.id.value, {
+              method: 'PUT',
+              body: formData
+            });
+            
+            const result = await response.json();
+            
+            if (response.ok) {
+              showToast('success', '操作成功', '竞品信息已成功更新！');
+              // 更新成功后可以重定向到详情页或列表页
+              setTimeout(() => {
+                window.location.href = '/cpls'; // 修改为列表页地址
+              }, 1500);
+            } else {
+              showToast('danger', '操作失败', result.error || '更新竞品信息时出错');
+            }
+          } catch (error) {
+            console.error('Error:', error);
+            showToast('danger', '网络错误', '无法连接到服务器，请稍后再试');
+          }
+        });
+        
+        function showToast(type, title, message) {
+          toastTitle.textContent = title;
+          toastMessage.textContent = message;
+          toastEl.className = `toast position-fixed top-0 end-0 m-3 show text-bg-${type}`;
+          toast.show();
+        }
+      });

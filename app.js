@@ -18,6 +18,7 @@ var countryAddRouter = require('./routes/cnty-add');
 var countryListRouter = require('./routes/cnty-ls');
 var cpAddRouter = require('./routes/cp-add');
 var cpListRouter = require('./routes/cp-ls');
+var cpEditRouter = require('./routes/cp-edit'); // 添加这一行
 var profitRouter = require('./routes/profit');
 var vcalRouter = require('./routes/v-cal');
 var amzRouter = require('./routes/amz-kv');
@@ -80,6 +81,7 @@ app.use('/cntyadd', countryAddRouter);
 app.use('/cntyls', countryListRouter);
 app.use('/cpadd', cpAddRouter);
 app.use('/cpls', cpListRouter);
+app.use('/cp-edit', cpEditRouter); // 添加这一行
 app.use('/profit', profitRouter);
 app.use('/vcal', vcalRouter);
 app.use('/amzkv', amzRouter);
@@ -90,7 +92,9 @@ app.use('/amzsku', amzSkuRouter);
 app.use('/signin', signIn);
 app.use('/campaigns', campaigns);
 
-// 在现有路由配置后添加
+// 删除以下两行
+// var cpDetailRouter = require('./routes/cp-detail');
+// app.use('/cp', cpDetailRouter);
 app.use('/cntyedit', require('./routes/cnty-edit'));
 
 
