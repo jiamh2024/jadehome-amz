@@ -125,8 +125,40 @@ html(lang="zh-CN")
             },
             { data: 'product_name' },
             { data: 'brand' },
+            // 修改ASIN列为超链接
+            {
+              data: 'asin', 
+              defaultContent: '-',
+              render: function(data, type, row) {
+                if (!data) return '-';
+                
+                // 根据国家代码构建亚马逊链接
+                let baseUrl = 'https://www.amazon.com'; // 默认美国站点
+                
+                switch(row.country_code) {
+                  case 'UK':
+                    baseUrl = 'https://www.amazon.co.uk';
+                    break;
+                  case 'US':
+                    baseUrl = 'https://www.amazon.com';
+                    break;
+                  case 'CA':
+                    baseUrl = 'https://www.amazon.ca';
+                    break;
+                  case 'AE':
+                    baseUrl = 'https://www.amazon.ae';
+                  case 'SA':
+                    baseUrl = 'https://www.amazon.sa';
+                    break;
+                  // 可以根据需要添加更多国家
+                }
+                
+                const amazonUrl = `${baseUrl}/dp/${data}`;
+                return `<a href="${amazonUrl}" target="_blank" rel="noopener noreferrer">${data}</a>`;
+              }
+            },
             { data: 'country_code' },
-            { 
+            {
               data: 'sale_price',
               render: function(data) {
                 return '¥' + parseFloat(data).toFixed(2);

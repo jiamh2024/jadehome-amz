@@ -69,6 +69,11 @@ html(lang="zh-CN")
 
         .row.mb-3
           .col-md-6
+            label.form-label(for="asin") ASIN
+            input#asin.form-control(type="text" name="asin" value=competitor.asin placeholder="亚马逊产品唯一标识")
+
+        .row.mb-3
+          .col-md-6
             label.form-label.required-field(for="country_code") 国家代码
             select#country_code.form-select(name="country_code" required)
               option(value="") -- 选择国家 --
@@ -231,6 +236,10 @@ html(lang="zh-CN")
           }
           if (form.image3.files.length > 0) {
             formData.append('image3', form.image3.files[0]);
+          }
+          // 添加ASIN字段
+          if (form.asin.value) {
+            formData.append('asin', form.asin.value);
           }
           
           try {

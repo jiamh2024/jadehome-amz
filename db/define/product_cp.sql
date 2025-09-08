@@ -20,4 +20,5 @@ CREATE TABLE product_cp (
 ALTER TABLE product_cp
 ADD COLUMN image_url_1 VARCHAR(255) NULL COMMENT '竞品图片1链接',
 ADD COLUMN image_url_2 VARCHAR(255) NULL COMMENT '竞品图片2链接',
-ADD COLUMN image_url_3 VARCHAR(255) NULL COMMENT '竞品图片3链接';
+ADD COLUMN image_url_3 VARCHAR(255) NULL COMMENT '竞品图片3链接',
+ADD COLUMN asin VARCHAR(20) NULL COMMENT 'Amazon Standard Identification Number (亚马逊产品唯一标识)';

@@ -112,7 +112,7 @@ router.post('/', cpUpload, async (req, res) => {
     // 从表单数据中获取文本字段
     const { 
       product_name, brand, country_code, sale_price, 
-      length, width, height, weight, has_battery 
+      length, width, height, weight, has_battery, asin
     } = req.body;
 
     // 验证必填字段
@@ -139,8 +139,8 @@ router.post('/', cpUpload, async (req, res) => {
       INSERT INTO product_cp (
         product_name, brand, country_code, sale_price,
         length, width, height, weight, has_battery,
-        image_url_1, image_url_2, image_url_3
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        image_url_1, image_url_2, image_url_3, asin
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
     const params = [
@@ -155,7 +155,8 @@ router.post('/', cpUpload, async (req, res) => {
       has_battery === '1' || has_battery === 'true' ? 1 : 0,
       image_url_1,
       image_url_2,
-      image_url_3
+      image_url_3,
+      asin
     ];
 
     const result = await db.query(sql, params);
@@ -176,7 +177,8 @@ router.post('/', cpUpload, async (req, res) => {
         has_battery: has_battery === '1' || has_battery === 'true',
         image_url_1,
         image_url_2,
-        image_url_3
+        image_url_3,
+        asin
       }
     });
   } catch (error) {
@@ -502,7 +504,7 @@ router.put('/:id', cpUpload, async (req, res) => {
     const {
       product_name, brand, country_code, sale_price,
       length, width, height, weight, has_battery,
-      existing_image1, existing_image2, existing_image3
+      existing_image1, existing_image2, existing_image3, asin
     } = req.body;
     
     // 验证必填字段
@@ -539,6 +541,7 @@ router.put('/:id', cpUpload, async (req, res) => {
         image_url_1 = ?,
         image_url_2 = ?,
         image_url_3 = ?,
+        asin = ?,
         updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
     `;
@@ -556,6 +559,7 @@ router.put('/:id', cpUpload, async (req, res) => {
       image_url_1,
       image_url_2,
       image_url_3,
+      asin,
       id
     ];
     
@@ -577,7 +581,8 @@ router.put('/:id', cpUpload, async (req, res) => {
         has_battery: has_battery === '1' || has_battery === 'true',
         image_url_1,
         image_url_2,
-        image_url_3
+        image_url_3,
+        asin
       }
     });
   } catch (error) {
