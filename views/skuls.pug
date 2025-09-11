@@ -139,6 +139,9 @@ html(lang="en")
                 <a href="/skuedit/${sku.sku_id}" class="btn btn-sm btn-outline-primary">
                   <i class="bi bi-pencil-square"></i> Edit
                 </a>
+                <a href="/profit?product_id=${sku.sku_id}&product_name=${encodeURIComponent(sku.product_name || '')}&length=${sku.length}&width=${sku.width}&height=${sku.height}&weight=${sku.weight}&purchase_cost=${sku.purchase_cost}&currency=${sku.currency}" class="btn btn-sm btn-outline-info">
+                  <i class="bi bi-calculator"></i> Cost
+                </a>
                 <button class="btn btn-sm btn-outline-danger" onclick="deleteSKU(${sku.sku_id})">
                   <i class="bi bi-trash"></i>
                 </button>

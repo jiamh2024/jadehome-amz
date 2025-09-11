@@ -177,6 +177,105 @@ html(lang="zh-CN")
         const toastTitle = document.getElementById('toastTitle');
         const toastMessage = document.getElementById('toastMessage');
         const toast = new bootstrap.Toast(toastEl);
+        const countryCode = document.getElementById('country_code');
+        
+        // 单位转换函数
+        function cmToIn(cm) {
+          return (parseFloat(cm) / 2.54).toFixed(2);
+        }
+        
+        function inToCm(inches) {
+          return (parseFloat(inches) * 2.54).toFixed(2);
+        }
+        
+        function kgToLb(kg) {
+          return (parseFloat(kg) / 0.45359237).toFixed(2);
+        }
+        
+        function lbToKg(lb) {
+          return (parseFloat(lb) * 0.45359237).toFixed(3);
+        }
+        
+        // 页面加载时，根据国家代码初始化单位显示
+        function initUnits() {
+          const isUS = countryCode.value === 'US';
+          
+          // 初始化尺寸单位
+          if (isUS) {
+            document.querySelector('label[for="dimensions"]').textContent = '产品尺寸 (in)';
+            document.querySelectorAll('.dimension-inputs .input-group-text')[1].textContent = 'in'; // 长
+            document.querySelectorAll('.dimension-inputs .input-group-text')[3].textContent = 'in'; // 宽
+            document.querySelectorAll('.dimension-inputs .input-group-text')[5].textContent = 'in'; // 高
+            
+            // 如果有值，转换为英寸
+            if (form.length.value) form.length.value = cmToIn(form.length.value);
+            if (form.width.value) form.width.value = cmToIn(form.width.value);
+            if (form.height.value) form.height.value = cmToIn(form.height.value);
+          } else {
+            document.querySelector('label[for="dimensions"]').textContent = '产品尺寸 (cm)';
+            document.querySelectorAll('.dimension-inputs .input-group-text')[1].textContent = 'cm'; // 长
+            document.querySelectorAll('.dimension-inputs .input-group-text')[3].textContent = 'cm'; // 宽
+            document.querySelectorAll('.dimension-inputs .input-group-text')[5].textContent = 'cm'; // 高
+          }
+          
+          // 初始化重量单位
+          if (isUS) {
+            document.querySelectorAll('.input-group-text')[7].textContent = 'lb';
+            // 如果有值，转换为磅
+            if (form.weight.value) form.weight.value = kgToLb(form.weight.value);
+          } else {
+            document.querySelectorAll('.input-group-text')[7].textContent = 'kg';
+          }
+        }
+        
+        // 初始化单位
+        initUnits();
+        
+        // 当国家代码改变时，切换显示单位
+        countryCode.addEventListener('change', function() {
+          const isUS = this.value === 'US';
+          const prevIsUS = (this.previousValue === 'US');
+          
+          // 保存当前值供下次比较
+          this.previousValue = this.value;
+          
+          // 切换尺寸单位
+          if (isUS) {
+            document.querySelector('label[for="dimensions"]').textContent = '产品尺寸 (in)';
+            document.querySelectorAll('.dimension-inputs .input-group-text')[3].textContent = 'in'; // 长
+            document.querySelectorAll('.dimension-inputs .input-group-text')[4].textContent = 'in'; // 宽
+            document.querySelectorAll('.dimension-inputs .input-group-text')[5].textContent = 'in'; // 高
+            
+            // 如果有值且之前不是美国单位，转换为英寸
+            if (form.length.value && !prevIsUS) form.length.value = cmToIn(form.length.value);
+            if (form.width.value && !prevIsUS) form.width.value = cmToIn(form.width.value);
+            if (form.height.value && !prevIsUS) form.height.value = cmToIn(form.height.value);
+          } else {
+            document.querySelector('label[for="dimensions"]').textContent = '产品尺寸 (cm)';
+            document.querySelectorAll('.dimension-inputs .input-group-text')[3].textContent = 'cm'; // 长
+            document.querySelectorAll('.dimension-inputs .input-group-text')[4].textContent = 'cm'; // 宽
+            document.querySelectorAll('.dimension-inputs .input-group-text')[5].textContent = 'cm'; // 高
+            
+            // 如果有值且之前是美国单位，转换为厘米
+            if (form.length.value && prevIsUS) form.length.value = inToCm(form.length.value);
+            if (form.width.value && prevIsUS) form.width.value = inToCm(form.width.value);
+            if (form.height.value && prevIsUS) form.height.value = inToCm(form.height.value);
+          }
+          
+          // 切换重量单位
+          if (isUS) {
+            document.querySelectorAll('.input-group-text')[6].textContent = 'lb';
+            // 如果有值且之前不是美国单位，转换为磅
+            if (form.weight.value && !prevIsUS) form.weight.value = kgToLb(form.weight.value);
+          } else {
+            document.querySelectorAll('.input-group-text')[6].textContent = 'kg';
+            // 如果有值且之前是美国单位，转换为千克
+            if (form.weight.value && prevIsUS) form.weight.value = lbToKg(form.weight.value);
+          }
+        });
+        
+        // 存储初始值
+        countryCode.previousValue = countryCode.value;
         
         // 图片预览功能
         function setupImagePreview(inputId, previewId) {
@@ -208,39 +307,31 @@ html(lang="zh-CN")
         form.addEventListener('submit', async function(e) {
           e.preventDefault();
           
-          // 使用FormData提交表单数据和文件
-          const formData = new FormData();
-          formData.append('id', form.id.value);
-          formData.append('product_name', form.product_name.value);
-          formData.append('brand', form.brand.value);
-          formData.append('country_code', form.country_code.value);
-          formData.append('sale_price', form.sale_price.value);
+          // 使用FormData自动收集所有表单数据，包括文件
+          const formData = new FormData(this);
           
-          if (form.length.value) formData.append('length', form.length.value);
-          if (form.width.value) formData.append('width', form.width.value);
-          if (form.height.value) formData.append('height', form.height.value);
-          if (form.weight.value) formData.append('weight', form.weight.value);
+          // 处理单位转换 - 先移除原始的单位值
+          formData.delete('length');
+          formData.delete('width');
+          formData.delete('height');
+          formData.delete('weight');
+          
+          // 然后根据国家代码添加转换后的值
+          if (form.country_code.value === 'US') {
+            if (form.length.value) formData.append('length', inToCm(form.length.value));
+            if (form.width.value) formData.append('width', inToCm(form.width.value));
+            if (form.height.value) formData.append('height', inToCm(form.height.value));
+            if (form.weight.value) formData.append('weight', lbToKg(form.weight.value));
+          } else {
+            if (form.length.value) formData.append('length', form.length.value);
+            if (form.width.value) formData.append('width', form.width.value);
+            if (form.height.value) formData.append('height', form.height.value);
+            if (form.weight.value) formData.append('weight', form.weight.value);
+          }
+          
+          // 确保has_battery字段值正确
+          formData.delete('has_battery');
           formData.append('has_battery', form.has_battery.checked ? 1 : 0);
-          
-          // 添加现有图片路径
-          if (form.existing_image1) formData.append('existing_image1', form.existing_image1.value);
-          if (form.existing_image2) formData.append('existing_image2', form.existing_image2.value);
-          if (form.existing_image3) formData.append('existing_image3', form.existing_image3.value);
-          
-          // 添加新上传的图片文件
-          if (form.image1.files.length > 0) {
-            formData.append('image1', form.image1.files[0]);
-          }
-          if (form.image2.files.length > 0) {
-            formData.append('image2', form.image2.files[0]);
-          }
-          if (form.image3.files.length > 0) {
-            formData.append('image3', form.image3.files[0]);
-          }
-          // 添加ASIN字段
-          if (form.asin.value) {
-            formData.append('asin', form.asin.value);
-          }
           
           try {
             const response = await fetch('/api/cp/' + form.id.value, {

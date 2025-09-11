@@ -96,12 +96,28 @@ html(lang="zh-CN")
               .detail-item
                 span.detail-label 尺寸(L×W×H)：
                 - const dimensions = [];
-                - if (competitor.length) dimensions.push(competitor.length + 'cm');
-                - if (competitor.width) dimensions.push(competitor.width + 'mm');
-                - if (competitor.height) dimensions.push(competitor.height + 'cm');
+                - if (competitor.country_code === 'US') {
+                -   // 美国显示英寸
+                -   if (competitor.length) dimensions.push((parseFloat(competitor.length) / 2.54).toFixed(2) + 'in');
+                -   if (competitor.width) dimensions.push((parseFloat(competitor.width) / 2.54).toFixed(2) + 'in');
+                -   if (competitor.height) dimensions.push((parseFloat(competitor.height) / 2.54).toFixed(2) + 'in');
+                - } else {
+                -   // 其他国家显示厘米/mm
+                -   if (competitor.length) dimensions.push(competitor.length + 'cm');
+                -   if (competitor.width) dimensions.push(competitor.width + 'mm');
+                -   if (competitor.height) dimensions.push(competitor.height + 'cm');
+                - }
                 span= dimensions.join(' × ') || '-' 
               .detail-item
                 span.detail-label 重量：
+                - if (competitor.country_code === 'US' && competitor.weight) {
+                -   // 美国显示磅
+                -   const weightInLb = (parseFloat(competitor.weight) / 0.45359237).toFixed(2);
+                -   return weightInLb + 'lb';
+                - } else {
+                -   // 其他国家显示千克
+                -   return competitor.weight ? competitor.weight + 'kg' : '-';
+                - }
                 span #{competitor.weight ? competitor.weight + 'kg' : '-'}
               .detail-item
                 span.detail-label 带电：

@@ -65,6 +65,7 @@ html(lang="zh-CN")
                 th 产品图片
                 th 产品规格
                 th 品牌
+                th ASIN
                 th 国家
                 th 价格
                 th 尺寸(L×W×H)
@@ -164,19 +165,36 @@ html(lang="zh-CN")
                 return '¥' + parseFloat(data).toFixed(2);
               }
             },
-            {
+            {              
               data: null,
               render: function(data) {
                 const dimensions = [];
-                if (data.length) dimensions.push(data.length + 'cm');
-                if (data.width) dimensions.push(data.width + 'mm');
-                if (data.height) dimensions.push(data.height + 'cm');
+                
+                // 根据国家代码决定显示单位
+                if (data.country_code === 'US') {
+                  // 美国显示英寸
+                  if (data.length) dimensions.push((parseFloat(data.length) / 2.54).toFixed(2) + 'in');
+                  if (data.width) dimensions.push((parseFloat(data.width) / 2.54).toFixed(2) + 'in');
+                  if (data.height) dimensions.push((parseFloat(data.height) / 2.54).toFixed(2) + 'in');
+                } else {
+                  // 其他国家显示厘米/mm
+                  if (data.length) dimensions.push(data.length + 'cm');
+                  if (data.width) dimensions.push(data.width + 'mm');
+                  if (data.height) dimensions.push(data.height + 'cm');
+                }
+                
                 return dimensions.join(' × ') || '-';
               }
             },
             {
               data: 'weight',
-              render: function(data) {
+              render: function(data, type, row) {
+                // 根据国家代码决定显示单位
+                if (row.country_code === 'US' && data) {
+                  // 美国显示磅
+                  return (parseFloat(data) / 0.45359237).toFixed(2) + 'lb';
+                }
+                // 其他国家显示千克
                 return data ? data + 'kg' : '-';
               }
             },
@@ -191,14 +209,20 @@ html(lang="zh-CN")
               orderable: false,              
               // 在操作列的render函数中，详情和删除按钮之间添加编辑按钮              
               render: function(data) {                
+                // 构建成本计算的URL参数
+                const profitUrl = `/profit?product_id=${data.id}&product_name=${encodeURIComponent(data.product_name)}&brand=${encodeURIComponent(data.brand)}&country_code=${data.country_code}&length=${data.length || 0}&width=${data.width || 0}&height=${data.height || 0}&weight=${data.weight || 0}&sale_price=${data.sale_price || 0}`;
+                
                 return `                  
                   <div class="table-actions">                    
-                    <a href="/cp-edit/${data.id}" class="btn btn-sm btn-primary me-1" title="编辑信息">                      
-                      <i class="bi bi-pencil"></i>                    
+                    <a href="/cp-edit/${data.id}" class="btn btn-sm btn-primary me-1" title="编辑信息">                       
+                      <i class="bi bi-pencil"></i>                     
                     </a>                    
-                    <button class="btn btn-sm btn-danger delete-btn" data-id="${data.id}" data-name="${data.product_name}" title="删除">                      
-                      <i class="bi bi-trash"></i>                    
-                    </button>                  
+                    <a href="${profitUrl}" class="btn btn-sm btn-info me-1" title="成本计算">
+                      <i class="bi bi-calculator"></i>
+                    </a>
+                    <button class="btn btn-sm btn-danger delete-btn" data-id="${data.id}" data-name="${data.product_name}" title="删除">                       
+                      <i class="bi bi-trash"></i>                     
+                    </button>                   
                   </div>                
                 `;              
               }            

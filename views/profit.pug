@@ -220,7 +220,7 @@ html(lang="zh-CN")
               data-width="${comp.width || ''}" 
               data-height="${comp.height || ''}" 
               data-weight="${comp.weight || ''}"
-              data-price="${comp.sale_price || ''}">
+              data-price="${comp.sale_price || ''}"> 
               ${comp.product_name} (${comp.brand})
             </option>`);
           });
@@ -236,10 +236,46 @@ html(lang="zh-CN")
               data-currency="${country.currency_code}"
               data-currency-label="${country.currency_unit}"
               data-length-unit="${country.length_unit || 'cm'}"
-              data-weight-unit="${country.weight_unit || 'kg'}">
+              data-weight-unit="${country.weight_unit || 'kg'}"> 
               ${country.country_name} (${country.country_code})
             </option>`);
           });
+          
+          // 解析URL参数并填充表单
+          const urlParams = new URLSearchParams(window.location.search);
+          const productId = urlParams.get('product_id');
+          
+          if (productId) {
+            // 设置选中的产品
+            productSelect.val(productId);
+            
+            // 如果产品信息在URL参数中提供了，直接使用
+            const productName = urlParams.get('product_name');
+            const brand = urlParams.get('brand');
+            const countryCode = urlParams.get('country_code');
+            const length = urlParams.get('length');
+            const width = urlParams.get('width');
+            const height = urlParams.get('height');
+            const weight = urlParams.get('weight');
+            const salePrice = urlParams.get('sale_price');
+            const purchaseCost = urlParams.get('purchase_cost');
+            
+            // 填充表单字段
+            if (length) $('#length').val(length);
+            if (width) $('#width').val(width);
+            if (height) $('#height').val(height);
+            if (weight) $('#weight').val(weight);
+            if (salePrice) $('#salePrice').val(salePrice);
+            if (purchaseCost) $('#purchasePrice').val(purchaseCost);
+            
+            // 设置选中的国家
+            if (countryCode) {
+              $('#countrySelect').val(countryCode);
+              
+              // 触发国家选择变化事件，更新单位和货币显示
+              $('#countrySelect').trigger('change');
+            }
+          }
         });
 
         // 竞品选择变化时自动填充数据
@@ -274,10 +310,20 @@ html(lang="zh-CN")
           }
         });
 
-        // 国家选择变化时自动更新单位和货币
+        // 国家选择变化时自动更新单位和货币，并转换数值
         $('#countrySelect').change(function() {
           const selectedOption = $(this).find('option:selected');
           if (selectedOption.val()) {
+            // 保存当前输入的数值
+            const currentLength = parseFloat($('#length').val()) || 0;
+            const currentWidth = parseFloat($('#width').val()) || 0;
+            const currentHeight = parseFloat($('#height').val()) || 0;
+            const currentWeight = parseFloat($('#weight').val()) || 0;
+            
+            // 获取当前显示的单位
+            const currentLengthUnit = $('.unit-display').first().text();
+            const currentWeightUnit = $('.unit-label').text();
+            
             // 更新货币显示
             const currencyCode = selectedOption.data('currency');
             const currencySymbol = selectedOption.data('currency-label');
@@ -288,11 +334,53 @@ html(lang="zh-CN")
             $('#exchangeRate').val(selectedOption.data('exchange'));
             $('#shippingRate').val(selectedOption.data('shipping')); // 海运单价
             
-            // 更新单位显示
-            const lengthUnit = selectedOption.data('length-unit');
-            const weightUnit = selectedOption.data('weight-unit');
-            $('.unit-display').text(lengthUnit); // 尺寸单位
-            $('.unit-label').text(weightUnit);   // 重量单位
+            // 获取新的单位
+            const newLengthUnit = selectedOption.data('length-unit');
+            const newWeightUnit = selectedOption.data('weight-unit');
+            
+            // 计算转换后的数值
+            let convertedLength = currentLength;
+            let convertedWidth = currentWidth;
+            let convertedHeight = currentHeight;
+            let convertedWeight = currentWeight;
+            
+            // 尺寸单位转换
+            if (currentLengthUnit !== newLengthUnit) {
+              if ((currentLengthUnit === 'cm' || currentLengthUnit === '厘米') && 
+                  (newLengthUnit === 'inch' || newLengthUnit === '英寸')) {
+                // 厘米 -> 英寸
+                convertedLength = (currentLength / 2.54).toFixed(2);
+                convertedWidth = (currentWidth / 2.54).toFixed(2);
+                convertedHeight = (currentHeight / 2.54).toFixed(2);
+              } else if ((currentLengthUnit === 'inch' || currentLengthUnit === '英寸') && 
+                         (newLengthUnit === 'cm' || newLengthUnit === '厘米')) {
+                // 英寸 -> 厘米
+                convertedLength = (currentLength * 2.54).toFixed(2);
+                convertedWidth = (currentWidth * 2.54).toFixed(2);
+                convertedHeight = (currentHeight * 2.54).toFixed(2);
+              }
+            }
+            
+            // 重量单位转换
+            if (currentWeightUnit !== newWeightUnit) {
+              if ((currentWeightUnit === 'kg' || currentWeightUnit === '千克') && 
+                  (newWeightUnit === 'lb' || newWeightUnit === '磅')) {
+                // 千克 -> 磅
+                convertedWeight = (currentWeight / 0.453592).toFixed(3);
+              } else if ((currentWeightUnit === 'lb' || currentWeightUnit === '磅') && 
+                         (newWeightUnit === 'kg' || newWeightUnit === '千克')) {
+                // 磅 -> 千克
+                convertedWeight = (currentWeight * 0.453592).toFixed(3);
+              }
+            }
+            
+            // 更新数值和单位显示
+            $('#length').val(convertedLength);
+            $('#width').val(convertedWidth);
+            $('#height').val(convertedHeight);
+            $('#weight').val(convertedWeight);
+            $('.unit-display').text(newLengthUnit); // 尺寸单位
+            $('.unit-label').text(newWeightUnit);   // 重量单位
           }
         });
 
