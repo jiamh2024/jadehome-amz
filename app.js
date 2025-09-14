@@ -21,6 +21,7 @@ var cpListRouter = require('./routes/cp-ls');
 var cpEditRouter = require('./routes/cp-edit'); // 添加这一行
 var profitRouter = require('./routes/profit');
 var vcalRouter = require('./routes/v-cal');
+var labelRouter = require('./routes/label');
 var amzRouter = require('./routes/amz-kv');
 var amzFileRouter = require('./routes/amz-file');
 var amzOrder = require('./routes/amz-order');
@@ -84,6 +85,8 @@ app.use('/cpls', cpListRouter);
 app.use('/cp-edit', cpEditRouter); // 添加这一行
 app.use('/profit', profitRouter);
 app.use('/vcal', vcalRouter);
+app.use('/label', labelRouter);
+
 app.use('/amzkv', amzRouter);
 app.use('/amzfile', amzFileRouter);
 

@@ -1,0 +1,161 @@
+doctype html
+html(lang='zh-CN')
+  head
+    meta(charset='UTF-8')
+    meta(name='viewport', content='width=device-width, initial-scale=1.0')
+    title 生成发货标签 - JadeHome
+    link(rel='stylesheet', href='/bootstrap.css')
+    link(rel='stylesheet', href='/style.css')
+    script(src='https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js')
+    script(src='https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js')
+    style.
+      .label-container {
+        width: 100mm;
+        height: 150mm;
+        border: 1px solid #000;
+        padding: 10mm;
+        margin: 0 auto;
+        font-family: Arial, sans-serif;
+        position: relative;
+      }
+      .label-title {
+        font-size: 18px;
+        font-weight: bold;
+        text-align: center;
+        margin-bottom: 10px;
+      }
+      .label-info {
+        font-size: 12px;
+        margin-bottom: 5px;
+      }
+      .barcode-container {
+        margin: 15px 0;
+        text-align: center;
+      }
+      .company-info {
+        margin-top: 15px;
+        text-align: center;
+      }
+      .qr-code {
+        position: absolute;
+        bottom: 10mm;
+        right: 10mm;
+        width: 40mm;
+        height: 40mm;
+      }
+      @media print {
+        body * {
+          visibility: hidden;
+        }
+        .label-container, .label-container * {
+          visibility: visible;
+        }
+        .label-container {
+          position: absolute;
+          left: 0;
+          top: 0;
+          border: none;
+        }
+      }
+  body
+    .container.container-main
+      h1.mb-4
+        i.bi.bi-tag
+        span.ms-2 生成发货标签
+      
+      .row
+        .col-md-6
+          .card
+            .card-header.bg-light
+              h5.mb-0 选择产品
+            .card-body
+              .mb-3
+                label.form-label(for='skuSelect') 选择SKU
+                select#skuSelect.form-select
+                  option(value='') -- 请选择SKU --
+                  each sku in skus
+                    option(value=sku.sku_code)= sku.sku_code + ' - ' + sku.product_name
+              
+              .mb-3
+                label.form-label(for='quantity') 数量
+                input#quantity.form-control(type='number', min='1', value='1')
+              
+              button#generateBtn.btn.btn-primary.mr-2 生成标签
+              button#printBtn.btn.btn-secondary 打印标签
+          
+        .col-md-6
+          .card
+            .card-header.bg-light
+              h5.mb-0 标签预览
+            .card-body
+              #labelPreview
+                .label-container
+                  div.label-title id="productName">产品名称</div>
+                  div.label-info id="modelInfo">Model: </div>
+                  div.label-info id="lengthInfo">Length: </div>
+                  div.label-info id="materialInfo">Material: </div>
+                  div.label-info id="techInfo">CRI > 80, CCT:6000K</div>
+                  div.label-info id="fluxInfo">Luminous Flux: </div>
+                  div.label-info id="areaInfo">Reading Area: </div>
+                  div.label-info id="madeInfo">MADE IN CHINA</div>
+                  div.label-info id="pdInfo">PD:28-SEP-25</div>
+                  div.barcode-container
+                    svg#barcode
+                    div#barcodeText</div>
+                  div.company-info
+                    img(src='/images/logo.png' alt='公司Logo' style='max-width: 80px; margin-bottom: 5px;')
+                    div>Email: support@homina.top</div>
+                    div>Forum: http://www.homina.top</div>
+                  div.qr-code id="qrcode"></div>
+      
+    script.
+      document.addEventListener('DOMContentLoaded', function() {
+        const skuSelect = document.getElementById('skuSelect');
+        const generateBtn = document.getElementById('generateBtn');
+        const printBtn = document.getElementById('printBtn');
+        
+        generateBtn.addEventListener('click', function() {
+          const skuCode = skuSelect.value;
+          if (!skuCode) {
+            alert('请选择SKU');
+            return;
+          }
+          
+          // 获取产品详情
+          axios.get(`/label/product-details/${skuCode}`)
+            .then(function(response) {
+              const data = response.data;
+              const sku = data.sku;
+              const specs = data.specs;
+              
+              // 填充标签信息
+              document.getElementById('productName').textContent = sku.product_name || '产品名称';
+              document.getElementById('modelInfo').textContent = `Model: ${specs.model || 'N/A'}`;
+              document.getElementById('lengthInfo').textContent = `Length: ${specs.length || sku.length} cm`;
+              document.getElementById('materialInfo').textContent = `Material: ${specs.material || 'N/A'}`;
+              document.getElementById('techInfo').textContent = specs.techSpecs || 'CRI > 80, CCT:6000K';
+              document.getElementById('fluxInfo').textContent = `Luminous Flux: ${specs.luminousFlux || 'N/A'}`;
+              document.getElementById('areaInfo').textContent = `Reading Area: ${specs.readingArea || 'N/A'}`;
+              
+              // 生成条形码
+              const barcodeValue = sku.asin || sku.sku_code;
+              document.getElementById('barcodeText').textContent = barcodeValue;
+              JsBarcode('#barcode', barcodeValue, {
+                width: 2,
+                height: 60,
+                displayValue: false
+              });
+              
+              // 注意：这里简化了QR码生成，实际实现时需要使用QR码生成库
+              document.getElementById('qrcode').innerHTML = '<div style="width:100%;height:100%;background-color:#f0f0f0;display:flex;align-items:center;justify-content:center;">QR码位置</div>';
+            })
+            .catch(function(error) {
+              console.error('获取产品详情失败:', error);
+              alert('获取产品详情失败，请重试');
+            });
+        });
+        
+        printBtn.addEventListener('click', function() {
+          window.print();
+        });
+      });
