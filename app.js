@@ -22,6 +22,7 @@ var cpEditRouter = require('./routes/cp-edit'); // 添加这一行
 var profitRouter = require('./routes/profit');
 var vcalRouter = require('./routes/v-cal');
 var labelRouter = require('./routes/label');
+var skuLabelRouter = require('./routes/sku-label');
 var amzRouter = require('./routes/amz-kv');
 var amzFileRouter = require('./routes/amz-file');
 var amzOrder = require('./routes/amz-order');
@@ -37,6 +38,8 @@ var countryApiRouter = require('./routes/api/country');
 var cpApiRouter = require('./routes/api/cp');
 var locaApiRouter = require('./routes/api/loca');
 var kvApiRouter = require('./routes/api/amz-pkv');
+var labelApiRouter = require('./routes/api/label');
+var skuLabelApiRouter = require('./routes/api/sku-label');
 
 var amzApi = require('./routes/sp-api/amz-api');
 var amzApiRouter = amzApi.router;
@@ -63,6 +66,8 @@ app.use('/api/country', countryApiRouter);
 app.use('/api/cp', cpApiRouter);
 app.use('/api/loca', locaApiRouter);
 app.use('/api/kv', kvApiRouter);
+app.use('/api/label', labelApiRouter);
+app.use('/api/sku-label', skuLabelApiRouter);
 
 app.use('/api/amzapi', amzApiRouter);
 app.use('/api/adsapi', adsApiRouter);
@@ -86,6 +91,7 @@ app.use('/cp-edit', cpEditRouter); // 添加这一行
 app.use('/profit', profitRouter);
 app.use('/vcal', vcalRouter);
 app.use('/label', labelRouter);
+app.use('/sku-label', skuLabelRouter);
 
 app.use('/amzkv', amzRouter);
 app.use('/amzfile', amzFileRouter);

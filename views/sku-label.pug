@@ -1,0 +1,666 @@
+html(lang='zh-CN')
+  head
+    meta(charset='UTF-8')
+    meta(name='viewport', content='width=device-width, initial-scale=1.0')
+    title SKU标签管理 - JadeHome
+    link(rel='stylesheet', href='/bootstrap.css')
+    link(rel='stylesheet', href='/style.css')
+    script(src='https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js')
+    style.
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        background-color: #f8f9fa;
+      }
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+      .page-header {
+        margin-bottom: 30px;
+      }
+      .card {
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      }
+      .card-header {
+        background-color: #f8f9fa;
+        border-bottom: 1px solid #dee2e6;
+        font-weight: 500;
+        font-size: 1.1rem;
+      }
+      .form-group {
+        margin-bottom: 20px;
+      }
+      .form-group label {
+        display: block;
+        font-weight: 500;
+        margin-bottom: 8px;
+        color: #495057;
+      }
+      .form-select, .form-control {
+        border-radius: 6px;
+        transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+      }
+      .form-select:focus, .form-control:focus {
+        border-color: #80bdff;
+        box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+      }
+      .btn {
+        border-radius: 6px;
+        padding: 8px 16px;
+        font-weight: 500;
+      }
+      .table {
+        border-collapse: collapse;
+        width: 100%;
+      }
+      .table th,
+      .table td {
+        padding: 12px;
+        text-align: left;
+        border-bottom: 1px solid #dee2e6;
+      }
+      .table th {
+        background-color: #f8f9fa;
+        font-weight: 500;
+        color: #495057;
+      }
+      .table tr:hover {
+        background-color: #f8f9fa;
+      }
+      .action-buttons {
+        display: flex;
+        gap: 8px;
+      }
+      .loading-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(255, 255, 255, 0.7);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        display: none;
+      }
+      .loading-content {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .message-toast {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 12px 20px;
+        border-radius: 6px;
+        color: white;
+        z-index: 10000;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+      }
+      .message-success {
+        background-color: #28a745;
+      }
+      .message-error {
+        background-color: #dc3545;
+      }
+      .filter-section {
+        display: flex;
+        gap: 16px;
+        margin-bottom: 20px;
+        align-items: flex-end;
+      }
+      .filter-group {
+        flex: 1;
+      }
+      @media (max-width: 768px) {
+        .filter-section {
+          flex-direction: column;
+        }
+        .filter-group {
+          width: 100%;
+        }
+      }
+  body
+    .container
+      .loading-overlay(id='loading-overlay')
+        .loading-content
+          div.spinner-border(spinner-border text-primary role='status')
+          span 加载中...
+      .message-toast(id='message-toast')
+      .page-header
+        h1 SKU标签管理
+        p 管理SKU与标签模板之间的关联关系
+      .card.mb-4
+        .card-header
+          h2 添加SKU标签关联
+        .card-body
+          form(id='add-sku-label-form')
+            .row
+              .col-md-4
+                .form-group
+                  label(for='sku_code') SKU
+                  select#sku_code.form-select(name='sku_code' required)
+                    option(value='') 请选择SKU
+              .col-md-4
+                .form-group
+                  label(for='country_code') 国家
+                  select#country_code.form-select(name='country_code' required)
+                    option(value='') 请选择国家
+              .col-md-4
+                .form-group
+                  label(for='label_id') 标签模板
+                  select#label_id.form-select(name='label_id' required)
+                    option(value='') 请选择标签模板
+            .row
+              .col-md-4
+                .form-group
+                  label(for='fnsku') FNSKU
+                  input#fnsku.form-control(type='text' name='fnsku')
+              .col-md-4
+                .form-group
+                  label(for='title') 标题
+                  input#title.form-control(type='text' name='title')
+              .col-md-4
+                .form-group
+                  label(for='left_text') 左侧文本
+                  input#left_text.form-control(type='text' name='left_text')
+            .form-group
+              label(for='production_date') 生产日期
+              input#production_date.form-control(type='date' name='production_date')
+            button#add-button.btn.btn-primary(type='submit') 添加关联
+      .card
+        .card-header
+          h2 SKU标签关联列表
+        .card-body
+          .filter-section
+            .filter-group
+              label(for='filter-sku_code') 筛选SKU
+              select#filter-sku_code.form-select(name='filter-sku_code')
+                option(value='') 全部SKU
+            .filter-group
+              label(for='filter-country_code') 筛选国家
+              select#filter-country_code.form-select(name='filter-country_code')
+                option(value='') 全部国家
+            .filter-group
+              label(for='filter-label_id') 筛选标签模板
+              select#filter-label_id.form-select(name='filter-label_id')
+                option(value='') 全部标签模板
+            button#filter-button.btn.btn-secondary(type='button') 筛选
+            button#reset-button.btn.btn-secondary(type='button') 重置
+          table#sku-label-table.table.table-hover
+            thead
+              tr
+                th ID
+                th SKU编码
+                th SKU名称
+                th 国家
+                th 标签模板尺寸
+                th FNSKU
+                th 标题
+                th 左侧文本
+                th 生产日期
+                th 创建时间
+                th 操作
+            tbody
+              // 表格内容将通过JavaScript动态加载
+    script.
+      // 全局变量存储当前编辑的ID
+      let currentEditId = null;
+      
+      // DOM元素
+      const loadingOverlay = document.getElementById('loading-overlay');
+      const messageToast = document.getElementById('message-toast');
+      const addSkuLabelForm = document.getElementById('add-sku-label-form');
+      const skuLabelTable = document.getElementById('sku-label-table').querySelector('tbody');
+      const filterButton = document.getElementById('filter-button');
+      const resetButton = document.getElementById('reset-button');
+      
+      // 初始化列表数据
+      let labelTemplateList = [];
+      let skuList = [];
+      let countryList = [];
+      
+      // 显示加载状态
+      function showLoading() {
+        loadingOverlay.style.display = 'flex';
+      }
+      
+      // 隐藏加载状态
+      function hideLoading() {
+        loadingOverlay.style.display = 'none';
+      }
+      
+      // 显示消息提示
+      function showMessage(message, isSuccess = true) {
+        messageToast.textContent = message;
+        messageToast.className = `message-toast ${isSuccess ? 'message-success' : 'message-error'}`;
+        messageToast.style.opacity = '1';
+        
+        setTimeout(() => {
+          messageToast.style.opacity = '0';
+        }, 3000);
+      }
+      
+      // 加载标签模板列表
+      function loadLabelTemplateList() {
+        axios.get('/api/label')
+          .then(response => {
+            const data = response.data;
+            if (data.success) {
+              labelTemplateList = data.data[0];
+              // 重新渲染标签模板选择框
+              renderLabelTemplateSelects();
+            } else {
+              console.error('加载标签模板列表失败：', data.message);
+            }
+          })
+          .catch(error => {
+            console.error('加载标签模板列表失败：', error);
+          });
+      }
+      
+      // 加载SKU列表
+      function loadSkuList() {
+        axios.get('/api/sku')
+          .then(response => {
+            const data = response.data;
+            if (data.success && data.data && data.data.skus) {
+              skuList = data.data.skus[0];
+              // 重新渲染SKU选择框
+              renderSkuSelects();
+            } else {
+              console.error('加载SKU列表失败：', data.message);
+            }
+          })
+          .catch(error => {
+            console.error('加载SKU列表失败：', error);
+          });
+      }
+      
+      // 加载国家列表
+      function loadCountryList() {
+        axios.get('/api/country')
+          .then(response => {
+            const countries = response.data;
+            if (Array.isArray(countries)) {
+              countryList = countries[0];
+              // 重新渲染国家选择框
+              renderCountrySelects();
+            } else {
+              console.error('加载国家列表失败：返回数据不是数组');
+            }
+          })
+          .catch(error => {
+            console.error('加载国家列表失败：', error);
+          });
+      }
+      
+      // 重新渲染标签模板选择框
+      function renderLabelTemplateSelects() {
+        // 渲染主表单中的标签模板选择框
+        const labelIdSelect = document.getElementById('label_id');
+        const labelIdOptions = labelIdSelect.querySelectorAll('option:not([value=""])');
+        labelIdOptions.forEach(option => option.remove());
+        
+        labelTemplateList.forEach(label => {
+          const option = document.createElement('option');
+          option.value = label.id;
+          option.textContent = `尺寸: ${label.length}x${label.width}`;
+          labelIdSelect.appendChild(option);
+        });
+        
+        // 渲染筛选条件中的标签模板选择框
+        const filterLabelIdSelect = document.getElementById('filter-label_id');
+        const filterLabelIdOptions = filterLabelIdSelect.querySelectorAll('option:not([value=""])');
+        filterLabelIdOptions.forEach(option => option.remove());
+        
+        labelTemplateList.forEach(label => {
+          const option = document.createElement('option');
+          option.value = label.id;
+          option.textContent = `尺寸: ${label.length}x${label.width}`;
+          filterLabelIdSelect.appendChild(option);
+        });
+      }
+      
+      // 重新渲染SKU选择框
+      function renderSkuSelects() {
+        // 渲染主表单中的SKU选择框
+        const skuCodeSelect = document.getElementById('sku_code');
+        const skuCodeOptions = skuCodeSelect.querySelectorAll('option:not([value=""])');
+        skuCodeOptions.forEach(option => option.remove());
+        
+        skuList.forEach(sku => {
+          const option = document.createElement('option');
+          option.value = sku.sku_code;
+          option.textContent = sku.sku_code;
+          skuCodeSelect.appendChild(option);
+        });
+        
+        // 渲染筛选条件中的SKU选择框
+        const filterSkuCodeSelect = document.getElementById('filter-sku_code');
+        const filterSkuCodeOptions = filterSkuCodeSelect.querySelectorAll('option:not([value=""])');
+        filterSkuCodeOptions.forEach(option => option.remove());
+        
+        skuList.forEach(sku => {
+          const option = document.createElement('option');
+          option.value = sku.sku_code;
+          option.textContent = sku.sku_code;
+          filterSkuCodeSelect.appendChild(option);
+        });
+      }
+      
+      // 重新渲染国家选择框
+      function renderCountrySelects() {
+        // 渲染主表单中的国家选择框
+        const countryCodeSelect = document.getElementById('country_code');
+        const countryCodeOptions = countryCodeSelect.querySelectorAll('option:not([value=""])');
+        countryCodeOptions.forEach(option => option.remove());
+        
+        countryList.forEach(country => {
+          const option = document.createElement('option');
+          option.value = country.country_code;
+          option.textContent = country.country_name;
+          countryCodeSelect.appendChild(option);
+        });
+        
+        // 渲染筛选条件中的国家选择框
+        const filterCountryCodeSelect = document.getElementById('filter-country_code');
+        const filterCountryCodeOptions = filterCountryCodeSelect.querySelectorAll('option:not([value=""])');
+        filterCountryCodeOptions.forEach(option => option.remove());
+        
+        countryList.forEach(country => {
+          const option = document.createElement('option');
+          option.value = country.country_code;
+          option.textContent = country.country_name;
+          filterCountryCodeSelect.appendChild(option);
+        });
+      }
+      
+      // 加载SKU标签关联列表
+      function loadSkuLabelList(filters = {}) {
+        showLoading();
+        
+        // 构建查询参数
+        const queryParams = new URLSearchParams();
+        if (filters.sku_code) queryParams.append('sku_code', filters.sku_code);
+        if (filters.country_code) queryParams.append('country_code', filters.country_code);
+        if (filters.label_id) queryParams.append('label_id', filters.label_id);
+        
+        axios.get(`/api/sku-label?${queryParams.toString()}`)
+          .then(response => {
+            const data = response.data;
+            if (data.success) {
+              renderSkuLabelTable(data.data);
+            } else {
+              showMessage('加载失败：' + data.message, false);
+            }
+          })
+          .catch(error => {
+            console.error('加载SKU标签关联列表失败：', error);
+            showMessage('加载SKU-LABEL关联列表失败，请稍后再试', false);
+          })
+          .finally(() => {
+            hideLoading();
+          });
+      }
+      
+      // 渲染SKU标签关联表格
+      function renderSkuLabelTable(data) {
+        skuLabelTable.innerHTML = '';
+        
+        if (data.length === 0) {
+          const emptyRow = document.createElement('tr');
+          emptyRow.innerHTML = `<td colspan="8" class="text-center">暂无数据</td>`;
+          skuLabelTable.appendChild(emptyRow);
+          return;
+        }
+        
+        data.forEach(item => {
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td>${item.id}</td>
+            <td>${item.sku_code}</td>
+            <td>${item.sku_code || '-'}</td>
+            <td>${item.country_name || '-'}</td>
+            <td>${item.length}x${item.width}</td>
+            <td>${item.fnsku || '-'}</td>
+            <td>${item.title || '-'}</td>
+            <td>${item.left_text || '-'}</td>
+            <td>${item.production_date ? formatDate(item.production_date).split(' ')[0] : '-'}</td>
+            <td>${formatDate(item.created_at)}</td>
+            <td>
+              <div class="action-buttons">
+                <button class="btn btn-sm btn-primary edit-button" data-id="${item.id}">编辑</button>
+                <button class="btn btn-sm btn-danger delete-button" data-id="${item.id}">删除</button>
+              </div>
+            </td>
+          `;
+          skuLabelTable.appendChild(row);
+        });
+        
+        // 添加编辑和删除按钮的事件监听
+        document.querySelectorAll('.edit-button').forEach(button => {
+          button.addEventListener('click', handleEdit);
+        });
+        
+        document.querySelectorAll('.delete-button').forEach(button => {
+          button.addEventListener('click', handleDelete);
+        });
+      }
+      
+      // 格式化日期
+      function formatDate(dateString) {
+        if (!dateString) return '';
+        const date = new Date(dateString);
+        return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+      }
+      
+      // 处理添加/更新表单提交
+      function handleFormSubmit(event) {
+        event.preventDefault();
+        
+        const formData = new FormData(addSkuLabelForm);
+        
+        // 验证必填字段 - 添加trim()去除空白字符
+        const skuCode = formData.get('sku_code')?.trim();
+        const countryCode = formData.get('country_code')?.trim();
+        const labelId = formData.get('label_id')?.trim();
+        const fnsku = formData.get('fnsku')?.trim();
+        const title = formData.get('title')?.trim();
+        
+        // 添加日志记录，查看字段值
+        console.log('表单字段值：');
+        console.log('sku_code:', skuCode);
+        console.log('country_code:', countryCode);
+        console.log('label_id:', labelId);
+        console.log('fnsku:', fnsku);
+        console.log('title:', title);
+        
+        // 检查哪些字段为空或只包含空白字符
+        const emptyFields = [];
+        if (!skuCode) emptyFields.push('SKU');
+        if (!countryCode) emptyFields.push('国家');
+        if (!labelId) emptyFields.push('标签模板');
+        if (!fnsku) emptyFields.push('FNSKU');
+        if (!title) emptyFields.push('标题');
+        
+        if (emptyFields.length > 0) {
+          showMessage(`请填写以下必填字段：${emptyFields.join('、')}`, false);
+          return;
+        }
+        
+        showLoading();
+        
+        if (currentEditId) {
+          // 更新操作
+          axios.put(`/api/sku-label/${currentEditId}`, {
+            label_id: formData.get('label_id'),
+            fnsku: formData.get('fnsku'),
+            title: formData.get('title'),
+            left_text: formData.get('left_text'),
+            production_date: formData.get('production_date')
+          })
+            .then(response => {
+              const result = response.data;
+              if (result.success) {
+                showMessage('更新成功');
+                resetForm();
+                loadSkuLabelList();
+              } else {
+                showMessage('更新失败：' + result.message, false);
+              }
+            })
+            .catch(error => {
+              console.error('更新失败：', error);
+              showMessage('更新失败，请稍后再试', false);
+            })
+            .finally(() => {
+              hideLoading();
+            });
+        } else {
+          // 添加操作
+          const data = {
+            sku_code: formData.get('sku_code'),
+            country_code: formData.get('country_code'),
+            label_id: formData.get('label_id'),
+            fnsku: formData.get('fnsku'),
+            title: formData.get('title'),
+            left_text: formData.get('left_text'),
+            production_date: formData.get('production_date')
+          };
+          
+          axios.post('/api/sku-label', data)
+            .then(response => {
+              const result = response.data;
+              if (result.success) {
+                showMessage('添加成功');
+                resetForm();
+                loadSkuLabelList();
+              } else {
+                showMessage('添加失败：' + result.message, false);
+              }
+            })
+            .catch(error => {
+              console.error('添加失败：', error);
+              showMessage('添加失败，请稍后再试', false);
+            })
+            .finally(() => {
+              hideLoading();
+            });
+        }
+      }
+      
+      // 处理编辑按钮点击
+      function handleEdit(event) {
+        const id = event.target.getAttribute('data-id');
+        currentEditId = id;
+        
+        showLoading();
+        
+        axios.get(`/sku-label/edit/${id}`)
+          .then(response => {
+            const result = response.data;
+            if (result.success) {
+              const data = result.data;
+              document.getElementById('sku_code').value = data.sku_code;
+              document.getElementById('country_code').value = data.country_code;
+              document.getElementById('label_id').value = data.label_id;
+              document.getElementById('fnsku').value = data.fnsku || '';
+              document.getElementById('title').value = data.title || '';
+              document.getElementById('left_text').value = data.left_text || '';
+              document.getElementById('production_date').value = data.production_date ? new Date(data.production_date).toISOString().split('T')[0] : '';
+              
+              // 禁用SKU和国家选择（编辑时不允许修改）
+              document.getElementById('sku_code').disabled = true;
+              document.getElementById('country_code').disabled = true;
+              
+              // 更改按钮文本
+              document.getElementById('add-button').textContent = '更新关联';
+            } else {
+              showMessage('加载失败：' + result.message, false);
+            }
+          })
+          .catch(error => {
+            console.error('加载失败：', error);
+            showMessage('加载失败，请稍后再试', false);
+          })
+          .finally(() => {
+            hideLoading();
+          });
+      }
+      
+      // 处理删除按钮点击
+      function handleDelete(event) {
+        const id = event.target.getAttribute('data-id');
+        
+        if (confirm('确定要删除这个SKU标签关联吗？')) {
+          showLoading();
+          
+          axios.delete(`/api/sku-label/${id}`)
+            .then(response => {
+              const result = response.data;
+              if (result.success) {
+                showMessage('删除成功');
+                loadSkuLabelList();
+              } else {
+                showMessage('删除失败：' + result.message, false);
+              }
+            })
+            .catch(error => {
+              console.error('删除失败：', error);
+              showMessage('删除失败，请稍后再试', false);
+            })
+            .finally(() => {
+              hideLoading();
+            });
+        }
+      }
+      
+      // 重置表单
+      function resetForm() {
+        addSkuLabelForm.reset();
+        document.getElementById('sku_code').disabled = false;
+        document.getElementById('country_code').disabled = false;
+        document.getElementById('add-button').textContent = '添加关联';
+        currentEditId = null;
+      }
+      
+      // 处理筛选按钮点击
+      function handleFilter() {
+        const filters = {
+          sku_code: document.getElementById('filter-sku_code').value,
+          country_code: document.getElementById('filter-country_code').value,
+          label_id: document.getElementById('filter-label_id').value
+        };
+        loadSkuLabelList(filters);
+      }
+      
+      // 处理重置按钮点击
+      function handleReset() {
+        document.getElementById('filter-sku_code').value = '';
+        document.getElementById('filter-country_code').value = '';
+        document.getElementById('filter-label_id').value = '';
+        loadSkuLabelList();
+      }
+      
+      // 添加事件监听
+      addSkuLabelForm.addEventListener('submit', handleFormSubmit);
+      filterButton.addEventListener('click', handleFilter);
+      resetButton.addEventListener('click', handleReset);
+      
+      // 页面加载时初始化
+      document.addEventListener('DOMContentLoaded', function() {
+        loadLabelTemplateList();
+        loadSkuList();
+        loadCountryList();
+        loadSkuLabelList();
+      });

@@ -1,0 +1,322 @@
+doctype html
+html(lang="zh-CN")
+  head
+    meta(charset="UTF-8")
+    meta(name="viewport" content="width=device-width, initial-scale=1.0")
+    title 编辑标签模板 - JadeHome
+    link(href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet")
+    link(rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css")
+    script(src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js")
+    style.
+      .form-container {
+        max-width: 800px;
+        margin: 2rem auto;
+        padding: 2rem;
+        box-shadow: 0 0 15px rgba(0,0,0,0.1);
+        border-radius: 8px;
+      }
+      .required-field:after {
+        content: " *";
+        color: #dc3545;
+      }
+      .submit-loading {
+        position: relative;
+        pointer-events: none;
+      }
+      .submit-loading:after {
+        content: "";
+        position: absolute;
+        right: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 1rem;
+        height: 1rem;
+        border: 2px solid rgba(255,255,255,0.3);
+        border-radius: 50%;
+        border-top-color: white;
+        animation: spin 1s linear infinite;
+      }
+      @keyframes spin {
+        to { transform: translateY(-50%) rotate(360deg); }
+      }
+      .dimension-inputs {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 15px;
+      }
+      .back-link {
+        margin-bottom: 1rem;
+        display: inline-block;
+      }
+      .loading-container {
+        text-align: center;
+        padding: 3rem 1rem;
+        color: #6c757d;
+      }
+
+  body
+    .form-container
+      a.back-link(href="/label/ls")
+        i.bi.bi-arrow-left
+        |  返回标签模板列表
+      h2.mb-4 编辑标签模板
+      
+      // 消息提示框
+      div#messageContainer(style="display: none; margin-bottom: 1rem;")
+
+      // 加载状态
+      div#loadingState(class="loading-container")
+        i.bi.bi-spinner(style="font-size: 4rem; margin-bottom: 1rem;")
+        h4 加载中...
+        p 正在获取标签模板信息，请稍候
+
+      // 表单容器（初始隐藏）
+      div#formContainer(style="display: none;")
+        form#labelForm(novalidate)
+          input#templateId(type="hidden")
+          
+          div.form-group.mb-3
+            label.form-label.required-field(for="length") 标签长度 (mm)
+            input#length.form-control(type="number", min="1", required)
+            div.invalid-feedback 请输入有效的标签长度
+          
+          div.form-group.mb-3
+            label.form-label.required-field(for="width") 标签宽度 (mm)
+            input#width.form-control(type="number", min="1", required)
+            div.invalid-feedback 请输入有效的标签宽度
+          
+          div.form-group.mb-3
+            label.form-label(for="logo_path") 商标图案路径
+            input#logo_path.form-control(type="text", placeholder="输入商标图案的路径")
+          
+          div.form-group.mb-3
+            label.form-label(for="email") 电子邮箱
+            input#email.form-control(type="email", placeholder="输入联系邮箱")
+          
+          div.form-group.mb-3
+            label.form-label(for="website") 网址
+            input#website.form-control(type="url", placeholder="输入网站地址")
+          
+          div.form-group.mb-3
+            label.form-label(for="qr_code_link") 二维码图案链接
+            input#qr_code_link.form-control(type="text", placeholder="输入二维码图案的链接")
+          
+          div.form-group.mb-3
+            label.form-label(for="scan_icon_link") 扫码图标链接
+            input#scan_icon_link.form-control(type="text", placeholder="输入扫码图标的链接")
+          
+          div.d-flex.justify-content-end.mt-4
+            button#cancelBtn.btn.btn-secondary.mr-2 取消
+            button#submitBtn.btn.btn-primary 保存修改
+
+    script.
+      document.addEventListener('DOMContentLoaded', function() {
+        const formContainer = document.getElementById('formContainer');
+        const loadingState = document.getElementById('loadingState');
+        const form = document.getElementById('labelForm');
+        const submitBtn = document.getElementById('submitBtn');
+        const cancelBtn = document.getElementById('cancelBtn');
+
+        // 从URL路径中获取ID参数
+        const pathParts = window.location.pathname.split('/');
+        const templateId = pathParts[pathParts.length - 1];
+
+        if (!templateId || isNaN(templateId)) {
+          showMessage('无效的标签模板ID', 'danger');
+          loadingState.style.display = 'none';
+          return;
+        }
+
+        // 隐藏表单，显示加载状态
+        formContainer.style.display = 'none';
+        loadingState.style.display = 'block';
+
+        // 获取标签模板数据
+        axios.get(`/api/label/${templateId}`)
+          .then(function(response) {
+            if (response.data.success && response.data.data) {
+              const template = response.data.data;
+              
+              // 填充表单数据
+              document.getElementById('templateId').value = template.id;
+              document.getElementById('length').value = template.length;
+              document.getElementById('width').value = template.width;
+              document.getElementById('logo_path').value = template.logo_path || '';
+              document.getElementById('email').value = template.email || '';
+              document.getElementById('website').value = template.website || '';
+              document.getElementById('qr_code_link').value = template.qr_code_link || '';
+              document.getElementById('scan_icon_link').value = template.scan_icon_link || '';
+              
+              // 显示表单，隐藏加载状态
+              formContainer.style.display = 'block';
+              loadingState.style.display = 'none';
+            } else {
+              showMessage('未找到标签模板', 'danger');
+              loadingState.innerHTML = `
+                <i class="bi bi-exclamation-triangle" style="font-size: 4rem; margin-bottom: 1rem;"></i>
+                <h4>未找到标签模板</h4>
+                <p>无法找到ID为 ${templateId} 的标签模板</p>
+                <a class="btn btn-primary" href="/label/ls">返回标签模板列表</a>
+              `;
+            }
+          })
+          .catch(function(error) {
+            console.error('Error fetching label template:', error);
+            showMessage('加载标签模板失败，请稍后再试', 'danger');
+            loadingState.innerHTML = `
+              <i class="bi bi-exclamation-triangle" style="font-size: 4rem; margin-bottom: 1rem;"></i>
+              <h4>加载失败</h4>
+              <p>无法获取标签模板信息</p>
+              <button class="btn btn-primary" onclick="window.location.reload()">重新加载</button>
+              <a class="btn btn-secondary ml-2" href="/label/ls">返回标签模板列表</a>
+            `;
+          });
+
+        // 表单提交事件
+        form.addEventListener('submit', function(e) {
+          e.preventDefault();
+          
+          if (!form.checkValidity()) {
+            e.stopPropagation();
+            // 显示错误提示
+            const invalidFields = form.querySelectorAll(':invalid');
+            invalidFields.forEach(field => {
+              field.classList.add('is-invalid');
+              field.addEventListener('input', function() {
+                if (this.checkValidity()) {
+                  this.classList.remove('is-invalid');
+                }
+              });
+            });
+            return;
+          }
+
+          // 显示加载状态
+          submitBtn.disabled = true;
+          submitBtn.classList.add('submit-loading');
+          submitBtn.innerHTML = '保存中...';
+
+          // 收集表单数据
+          const formData = {
+            length: parseInt(document.getElementById('length').value),
+            width: parseInt(document.getElementById('width').value),
+            logo_path: document.getElementById('logo_path').value || null,
+            email: document.getElementById('email').value || null,
+            website: document.getElementById('website').value || null,
+            qr_code_link: document.getElementById('qr_code_link').value || null,
+            scan_icon_link: document.getElementById('scan_icon_link').value || null
+          };
+
+          // 发送API请求
+          axios.put(`/api/label/${templateId}`, formData)
+            .then(function(response) {
+              if (response.data.success) {
+                showMessage('标签模板更新成功！', 'success');
+                // 延迟后重定向到列表页面
+                setTimeout(function() {
+                  window.location.href = '/label/ls';
+                }, 1500);
+              } else {
+                showMessage(response.data.message || '更新失败，请重试', 'danger');
+                resetSubmitButton();
+              }
+            })
+            .catch(function(error) {
+              console.error('Error updating label template:', error);
+              showMessage('更新失败，请稍后再试', 'danger');
+              resetSubmitButton();
+            });
+        });
+
+        // 取消按钮事件
+        cancelBtn.addEventListener('click', function() {
+          window.location.href = '/label/ls';
+        });
+
+        // 重置提交按钮状态
+        function resetSubmitButton() {
+          submitBtn.disabled = false;
+          submitBtn.classList.remove('submit-loading');
+          submitBtn.innerHTML = '保存修改';
+        }
+
+        // 显示消息
+        function showMessage(text, type = 'info') {
+          const messageContainer = document.getElementById('messageContainer');
+          messageContainer.className = `alert alert-${type}`;
+          messageContainer.textContent = text;
+          messageContainer.style.display = 'block';
+
+          // 5秒后自动隐藏
+          setTimeout(function() {
+            messageContainer.style.display = 'none';
+          }, 5000);
+        }
+
+        // 实时表单验证
+        const numberInputs = form.querySelectorAll('input[type="number"]');
+        numberInputs.forEach(input => {
+          input.addEventListener('input', function() {
+            // 只允许输入正整数
+            if (this.value < 1) {
+              this.value = 1;
+            }
+            // 移除非数字字符
+            this.value = this.value.replace(/[^0-9]/g, '');
+          });
+        });
+
+        // URL格式验证
+        const urlInput = document.getElementById('website');
+        urlInput.addEventListener('input', function() {
+          // 如果用户输入了内容但没有协议部分，添加 http://
+          if (this.value && !this.value.match(/^https?:\/\//)) {
+            this.value = 'http://' + this.value;
+          }
+        });
+
+        // 监听表单变化，提醒用户
+        let originalData = null;
+        
+        // 存储原始数据以便比较
+        function storeOriginalData() {
+          originalData = {
+            length: document.getElementById('length').value,
+            width: document.getElementById('width').value,
+            logo_path: document.getElementById('logo_path').value,
+            email: document.getElementById('email').value,
+            website: document.getElementById('website').value,
+            qr_code_link: document.getElementById('qr_code_link').value,
+            scan_icon_link: document.getElementById('scan_icon_link').value
+          };
+        }
+
+        // 当表单数据加载完成后调用
+        formContainer.addEventListener('DOMNodeInserted', function() {
+          if (document.getElementById('templateId').value) {
+            storeOriginalData();
+          }
+        });
+
+        // 监听页面关闭事件
+        window.addEventListener('beforeunload', function(e) {
+          if (hasFormChanges()) {
+            const confirmationMessage = '您有未保存的更改，确定要离开吗？';
+            e.returnValue = confirmationMessage;
+            return confirmationMessage;
+          }
+        });
+
+        // 检查表单是否有更改
+        function hasFormChanges() {
+          if (!originalData) return false;
+          
+          return document.getElementById('length').value !== originalData.length ||
+                 document.getElementById('width').value !== originalData.width ||
+                 document.getElementById('logo_path').value !== originalData.logo_path ||
+                 document.getElementById('email').value !== originalData.email ||
+                 document.getElementById('website').value !== originalData.website ||
+                 document.getElementById('qr_code_link').value !== originalData.qr_code_link ||
+                 document.getElementById('scan_icon_link').value !== originalData.scan_icon_link;
+        }
+      });

@@ -4,14 +4,75 @@ var db = require('../db/db');
 
 // 标签生成页面
 router.get('/generate', function(req, res, next) {
-  // 查询所有SKU以供选择
-  const sql = 'SELECT sku_code, product_name FROM product_sku WHERE is_active = 1';
-  db.query(sql, function(error, skus) {
-    if (error) {
-      return next(error);
-    }
-    res.render('generate', { title: '生成发货标签', skus: skus });
+  // 使用Promise处理多个数据库查询
+  Promise.all([
+    // 查询所有SKU以供选择
+    new Promise((resolve, reject) => {
+      const sql = 'SELECT sku_code, product_name FROM product_sku WHERE is_active = 1';
+      db.query(sql, function(error, skus) {
+        if (error) {
+          reject(error);
+        } else {
+          resolve(skus);
+        }
+      });
+    }),
+    
+    // 查询所有国家以供选择
+        new Promise((resolve, reject) => {
+          const sql = 'SELECT id, country_name FROM country';
+          db.query(sql, function(error, countries) {
+            if (error) {
+              reject(error);
+            } else {
+              // 转换列名，保持前端代码兼容性
+              const formattedCountries = countries.map(country => ({
+                id: country.id,
+                name: country.country_name
+              }));
+              resolve(formattedCountries);
+            }
+          });
+        }),
+    
+    // 查询所有标签模板以供选择
+        new Promise((resolve, reject) => {
+          const sql = 'SELECT id, length, width FROM label_template';
+          db.query(sql, function(error, labelTemplates) {
+            if (error) {
+              reject(error);
+            } else {
+              resolve(labelTemplates);
+            }
+          });
+        })
+  ])
+  .then(([skus, countries, labelTemplates]) => {
+    res.render('generate', {
+      title: '生成发货标签',
+      skus: skus,
+      countries: countries,
+      labelTemplates: labelTemplates
+    });
+  })
+  .catch(error => {
+    next(error);
   });
+});
+
+// 标签模板列表页面
+router.get('/ls', function(req, res, next) {
+  res.render('label-ls', { title: '标签模板管理' });
+});
+
+// 添加标签模板页面
+router.get('/add', function(req, res, next) {
+  res.render('label-add', { title: '添加标签模板' });
+});
+
+// 编辑标签模板页面
+router.get('/edit/:id', function(req, res, next) {
+  res.render('label-edit', { title: '编辑标签模板', id: req.params.id });
 });
 
 // 获取产品详情API
