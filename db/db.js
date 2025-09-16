@@ -16,9 +16,9 @@ const pool = mysql.createPool({
 module.exports = {
   query: (sql, params) => {
     return new Promise((resolve, reject) => {
-      pool.query(sql, params, (err, results, fields) => {
+      pool.query(sql, params, (err, results) => {
         if (err) return reject(err);
-        resolve([results, fields]);
+        resolve(results);
       });
     });
   },

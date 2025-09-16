@@ -43,11 +43,11 @@ router.get('/', async (req, res) => {
     
     query += ' ORDER BY sl.created_at DESC';
     
-    const [results] = await db.query(query, queryParams).catch(err => {
+    const results = await db.query(query, queryParams).catch(err => {
       console.error('Fetch all records failed:', err);
       return [[], null];
     });
-    
+    console.log(results);
     res.json({
       success: true,
       data: results || []
@@ -160,7 +160,7 @@ router.post('/', async (req, res) => {
     
     const insertQuery = 'INSERT INTO sku_label (sku_code, country_code, label_id, fnsku, title, left_text, production_date) VALUES (?, ?, ?, ?, ?, ?, ?)';
     const insertValues = [sku_code, country_code, label_id, fnsku, title, left_text || null, production_date || null];
-    const [insertResult] = await db.query(insertQuery, insertValues).catch(err => {
+    const insertResult = await db.query(insertQuery, insertValues).catch(err => {
       console.error('Insert failed:', err);
       throw err; // 重新抛出错误以便在catch块中处理
     });
@@ -298,7 +298,7 @@ router.delete('/:id', async (req, res) => {
     
     // 先检查SKU标签关联是否存在
     const checkQuery = 'SELECT id FROM sku_label WHERE id = ?';
-    const [checkResult] = await db.query(checkQuery, [id]).catch(err => {
+    const checkResult = await db.query(checkQuery, [id]).catch(err => {
       console.error('Check record existence failed:', err);
       return [[], null];
     });
@@ -311,7 +311,7 @@ router.delete('/:id', async (req, res) => {
     }
     
     const deleteQuery = 'DELETE FROM sku_label WHERE id = ?';
-    const [deleteResult] = await db.query(deleteQuery, [id]).catch(err => {
+    const deleteResult = await db.query(deleteQuery, [id]).catch(err => {
       console.error('Delete failed:', err);
       throw err; // 重新抛出错误以便在catch块中处理
     });

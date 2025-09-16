@@ -256,7 +256,7 @@ html(lang='zh-CN')
           .then(response => {
             const data = response.data;
             if (data.success) {
-              labelTemplateList = data.data[0];
+              labelTemplateList = data.data;
               // 重新渲染标签模板选择框
               renderLabelTemplateSelects();
             } else {
@@ -274,7 +274,7 @@ html(lang='zh-CN')
           .then(response => {
             const data = response.data;
             if (data.success && data.data && data.data.skus) {
-              skuList = data.data.skus[0];
+              skuList = data.data.skus;
               // 重新渲染SKU选择框
               renderSkuSelects();
             } else {
@@ -292,7 +292,7 @@ html(lang='zh-CN')
           .then(response => {
             const countries = response.data;
             if (Array.isArray(countries)) {
-              countryList = countries[0];
+              countryList = countries;
               // 重新渲染国家选择框
               renderCountrySelects();
             } else {
@@ -441,19 +441,30 @@ html(lang='zh-CN')
               <div class="action-buttons">
                 <button class="btn btn-sm btn-primary edit-button" data-id="${item.id}">编辑</button>
                 <button class="btn btn-sm btn-danger delete-button" data-id="${item.id}">删除</button>
+                <button class="btn btn-sm btn-secondary print-button" 
+                        data-id="${item.id}" 
+                        data-sku-code="${item.sku_code}" 
+                        data-country-code="${item.country_code}" 
+                        data-label-id="${item.label_id}">
+                  打印
+                </button>
               </div>
             </td>
           `;
           skuLabelTable.appendChild(row);
         });
         
-        // 添加编辑和删除按钮的事件监听
+        // 添加编辑、删除和打印按钮的事件监听
         document.querySelectorAll('.edit-button').forEach(button => {
           button.addEventListener('click', handleEdit);
         });
         
         document.querySelectorAll('.delete-button').forEach(button => {
           button.addEventListener('click', handleDelete);
+        });
+        
+        document.querySelectorAll('.print-button').forEach(button => {
+          button.addEventListener('click', handlePrint);
         });
       }
       
@@ -656,6 +667,23 @@ html(lang='zh-CN')
       addSkuLabelForm.addEventListener('submit', handleFormSubmit);
       filterButton.addEventListener('click', handleFilter);
       resetButton.addEventListener('click', handleReset);
+      
+      // 处理打印按钮点击
+      function handlePrint(event) {
+        const button = event.target;
+        const skuCode = button.getAttribute('data-sku-code');
+        const countryCode = button.getAttribute('data-country-code');
+        const labelId = button.getAttribute('data-label-id');
+        
+        // 构建URL参数
+        const params = new URLSearchParams();
+        params.append('sku_code', skuCode);
+        params.append('country_code', countryCode);
+        params.append('label_id', labelId);
+        
+        // 跳转到generate页面并传递参数
+        window.location.href = `/label/generate?${params.toString()}`;
+      }
       
       // 页面加载时初始化
       document.addEventListener('DOMContentLoaded', function() {

@@ -142,7 +142,7 @@ html(lang="zh-CN")
                 showMessage('标签模板添加成功！', 'success');
                 // 延迟后重定向到列表页面
                 setTimeout(function() {
-                  window.location.href = '/label-ls';
+                  window.location.href = '/label/ls';
                 }, 1500);
               } else {
                 showMessage(response.data.message || '添加失败，请重试', 'danger');
@@ -160,10 +160,10 @@ html(lang="zh-CN")
         cancelBtn.addEventListener('click', function() {
           if (hasFormChanges()) {
             if (confirm('确定要放弃当前输入的内容吗？')) {
-              window.location.href = '/label-ls';
+              window.location.href = '/label/ls';
             }
           } else {
-            window.location.href = '/label-ls';
+            window.location.href = '/label/ls';
           }
         });
 
