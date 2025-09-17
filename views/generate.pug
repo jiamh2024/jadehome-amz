@@ -88,7 +88,7 @@ html(lang='zh-CN')
       }
       .label-container {
         border: 1px solid #000;
-        padding: 10mm;
+        padding: 1mm;
         margin: 0 auto;
         font-family: Arial, sans-serif;
         position: relative;
@@ -97,76 +97,78 @@ html(lang='zh-CN')
         /* 尺寸将通过JavaScript根据模板动态设置 */
       }
       .label-title {
-        font-size: 9px;
+        font-size: 12px;
         font-weight: bold;
         font-family: 'SimHei', '黑体', sans-serif;
         text-align: center;
-        margin-bottom: 20px;
-        transform: translateY(-10px);
+        margin-bottom: 5px;
       }
       /* 主要内容区域 - 左右布局 */
       .label-main-content {
         display: flex;
         justify-content: space-between;
-        margin-bottom: 90px;
-        height: 53px;
-        width: 280px;
+        margin-bottom: -9mm;
+        height: 30mm;
+        width: 78mm;
       }
       .label-left-section {
-        width: 30%;
+        width: 25%;
         display: flex;
         flex-direction: column;
         justify-content: center;
-        transform: translateX(-30px);
+      }
+      .label-info {
+        font-size: 8px;
       }
       .label-right-section {
-        width: 65%;
+        width: 78%;
         display: flex;
-        align-items: center;
         justify-content: center;
       }
       #barcodeText {
         width: 100%;
         height: 40px;
-        transform: translateY(-10px);
+        font-size: 12px;
+        font-weight:400;
       }
       /* 底部区域 - 左右布局 */
       .label-bottom-section {
-        display: flex;
         justify-content: space-between;
         position: relative;
-        height: 30px;
+        display: flex;
       }
       .label-bottom-left {
-        width: 40%;
+        width: 30%;
         display: flex;
         flex-direction: column;
         justify-content: flex-end;
         font-size: 10px;
         font-weight: 800;
+        text-align: center;
       }
       .label-bottom-right {
-        width: 60%;
         display: flex;
-        align-items: flex-end;
+        flex-direction: column;
         justify-content: flex-end;
+        width: 60%;
+        height: 50%;
       }
       /* 调整公司信息和二维码布局 */
       .company-info {
         text-align: right;
         margin-right: 10px;
-        max-width: 120px;
       }
       .qr-code {
+        position: absolute;
+        top: 35px;
+        right: -124px;
         width: 100mm;
         height: 15mm;
-        transform: translateX(-270px);
-        transform: translateY(-170px);
       }
       #companyEmail {
         text-align: left;
         font-size: 12px;
-        margin-bottom: 5px;
+        margin-bottom: -2px;
         width: 160px;
       }
       #companyWebsite {
@@ -176,8 +178,14 @@ html(lang='zh-CN')
         width: 180px;;
       }
       .barcode-container {
-        margin: 15px 0;
+        margin: 0 0;
         text-align: center;
+      }
+      .qr-code-text {
+        position: absolute;
+        font-size: 10px;
+        top: 69px;
+        right: 47px;
       }
 
       @media print {
@@ -286,9 +294,6 @@ html(lang='zh-CN')
                     img#companyLogo(src='' alt='公司Logo' style='max-width: 150px; margin-bottom: 5px;')
                     div#companyEmail Email: support@homina.top
                     div#companyWebsite Web: http://www.homina.top
-                  div.qr-code#qrcode
-                    img#companyLogo(src='' alt='QR' style='max-width: 80px; margin-bottom: 5px;')
-
       
     script.
       document.addEventListener('DOMContentLoaded', function() {
@@ -456,7 +461,7 @@ html(lang='zh-CN')
                   document.getElementById('modelInfo').textContent = skuLabel.left_text || 'N/A';
                   
                   // 添加国家信息
-                  document.getElementById('madeInfo').textContent = `MADE IN CHINA for ${skuLabel.country_name || '未知国家'}`;
+                  document.getElementById('madeInfo').textContent = `MADE IN CHINA`;
                   
                   // 处理生产日期
                   if (skuLabel.production_date) {
@@ -494,7 +499,7 @@ html(lang='zh-CN')
                   }
                   
                   if (template.website) {
-                    document.getElementById('companyWebsite').textContent = `Website: ${template.website}`;
+                    document.getElementById('companyWebsite').textContent = `Web: ${template.website}`;
                   } else {
                     document.getElementById('companyWebsite').textContent = 'Forum: http://www.homina.top';
                   }
@@ -503,26 +508,10 @@ html(lang='zh-CN')
                   const barcodeValue = skuLabel.fnsku || skuLabel.sku_code;
                   document.getElementById('barcodeText').textContent = barcodeValue;
                   JsBarcode('#barcode', barcodeValue, {
-                    width: 2,
-                    height: 40,
+                    width: 1.5,
+                    height: 30,
                     displayValue: false
                   });
-                  
-                  // 条码位置通过CSS类已设置为居中显示
-                  // 保持条码容器的默认样式，由CSS控制布局
-                  
-                  // 应用二维码设置
-                  if (template.qr_code_link) {
-                    // 如果模板中有qr_code_link，则显示对应的图片
-                    if (template.qr_code_link === 'qr') {
-                      document.getElementById('qrcode').innerHTML = '<img src="/images/qr.png" style="width:100%;height:100%;object-fit:contain;" alt="QR Code">';
-                    } else {
-                      document.getElementById('qrcode').innerHTML = '<img src="/images/' + template.qr_code_link + '.png" style="width:100%;height:100%;object-fit:contain;" alt="QR Code">';
-                    }
-                  } else {
-                    // 默认二维码占位
-                    document.getElementById('qrcode').innerHTML = '<div style="width:100%;height:100%;background-color:#f0f0f0;display:flex;align-items:center;justify-content:center;">QR码位置</div>';
-                  }
                   
                   // 隐藏加载状态，显示预览
                   hideLoading();
