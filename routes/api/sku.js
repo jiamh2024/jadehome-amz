@@ -68,13 +68,38 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Get Single SKU
+// Get Single SKU by ID
 router.get('/:id', async (req, res) => {
   try {
     const [sku] = await db.query(
       `SELECT * FROM product_sku 
        WHERE sku_id = ? AND is_active = 1`,
       [req.params.id]
+    );
+
+    if (!sku) {
+      return res.status(404).json({
+        success: false,
+        message: 'SKU not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: sku
+    });
+  } catch (err) {
+    handleServerError(res, err);
+  }
+});
+
+// Get Single SKU by SKU Code
+router.get('/code/:skuCode', async (req, res) => {
+  try {
+    const [sku] = await db.query(
+      `SELECT * FROM product_sku 
+       WHERE sku_code = ? AND is_active = 1`,
+      [req.params.skuCode]
     );
 
     if (!sku) {

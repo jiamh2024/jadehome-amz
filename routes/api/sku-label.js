@@ -15,14 +15,13 @@ function handleServerError(res, err) {
 router.get('/', async (req, res) => {
   try {
     // 可以根据查询参数过滤结果
-    const { sku_code, country_code, label_id } = req.query;
+    const { sku_code, country_code } = req.query;
     
-    let query = 'SELECT sl.id, sl.sku_code, sl.country_code, sl.label_id, sl.fnsku, sl.title, sl.left_text, sl.production_date, sl.created_at, '+
-              'p.product_name, c.country_name, lt.length, lt.width ' +
+    let query = 'SELECT sl.id, sl.sku_code, sl.country_code, sl.fnsku, sl.title, sl.left_text, sl.production_date, sl.created_at, '+
+              'p.product_name, c.country_name ' +
               'FROM sku_label sl ' +
               'LEFT JOIN product_sku p ON sl.sku_code = p.sku_code ' +
               'LEFT JOIN country c ON sl.country_code = c.country_code ' +
-              'LEFT JOIN label_template lt ON sl.label_id = lt.id ' +
               'WHERE 1=1';
     const queryParams = [];
     
@@ -34,11 +33,6 @@ router.get('/', async (req, res) => {
     if (country_code) {
       query += ' AND sl.country_code = ?';
       queryParams.push(country_code);
-    }
-    
-    if (label_id) {
-      query += ' AND sl.label_id = ?';
-      queryParams.push(label_id);
     }
     
     query += ' ORDER BY sl.created_at DESC';
@@ -61,19 +55,35 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const query = 'SELECT sl.id, sl.sku_code, sl.country_code, sl.label_id, sl.fnsku, sl.title, sl.left_text, sl.production_date, sl.created_at, '+
-                'p.product_name, c.country_name, lt.length, lt.width ' +
+    const query = 'SELECT sl.id, sl.sku_code, sl.country_code, sl.fnsku, sl.title, sl.left_text, sl.production_date, sl.created_at, '+
+                'p.product_name, c.country_name ' +
                 'FROM sku_label sl ' +
                 'LEFT JOIN product_sku p ON sl.sku_code = p.sku_code ' +
                 'LEFT JOIN country c ON sl.country_code = c.country_code ' +
-                'LEFT JOIN label_template lt ON sl.label_id = lt.id ' +
                 'WHERE sl.id = ?';
-    const [results] = await db.query(query, [id]).catch(err => {
+    const results = await db.query(query, [id]).catch(err => {
       console.error('Fetch single record failed:', err);
       return [[], null];
     });
     
-    if (!results || results.length === 0) {
+    // 检查查询结果
+    if (!results) {
+      return res.status(500).json({
+        success: false,
+        message: '数据库查询失败'
+      });
+    }
+    
+    if (results.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: '未找到SKU标签关联'
+      });
+    }
+    
+    // 确保返回的数据格式正确
+    const skuLabel = results[0];
+    if (!skuLabel) {
       return res.status(404).json({
         success: false,
         message: '未找到SKU标签关联'
@@ -82,7 +92,7 @@ router.get('/:id', async (req, res) => {
     
     res.json({
       success: true,
-      data: results[0]
+      data: skuLabel
     });
   } catch (err) {
     handleServerError(res, err);
@@ -92,13 +102,13 @@ router.get('/:id', async (req, res) => {
 // 创建新的SKU标签关联（POST请求）
 router.post('/', async (req, res) => {
   try {
-    const { sku_code, country_code, label_id, fnsku, title, left_text, production_date } = req.body;
+    const { sku_code, country_code, fnsku, title, left_text, production_date } = req.body;
     
     // 验证必填字段
-    if (!sku_code || !country_code || !label_id || !fnsku || !title) {
+    if (!sku_code || !country_code || !fnsku || !title) {
       return res.status(400).json({
         success: false,
-        message: 'SKU编码、国家代码、标签模板ID、FNSKU编号和标签标题为必填项'
+        message: 'SKU编码、国家代码、FNSKU编号和标签标题为必填项'
       });
     }
     
@@ -130,23 +140,9 @@ router.post('/', async (req, res) => {
       });
     }
     
-    // 检查标签模板是否存在
-    const labelCheckQuery = 'SELECT id FROM label_template WHERE id = ?';
-    const [labelCheckResult] = await db.query(labelCheckQuery, [label_id]).catch(err => {
-      console.error('Label template check failed:', err);
-      return [[], null];
-    });
-    
-    if (!labelCheckResult || labelCheckResult.length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: '标签模板不存在'
-      });
-    }
-    
-    // 检查是否已存在相同的SKU、标签模板和国家的关联（根据唯一键）
-    const duplicateCheckQuery = 'SELECT id FROM sku_label WHERE sku_code = ? AND label_id = ? AND country_code = ?';
-    const [duplicateCheckResult] = await db.query(duplicateCheckQuery, [sku_code, label_id, country_code]).catch(err => {
+    // 检查是否已存在相同的SKU和国家的关联（根据唯一键）
+    const duplicateCheckQuery = 'SELECT id FROM sku_label WHERE sku_code = ? AND country_code = ?';
+    const [duplicateCheckResult] = await db.query(duplicateCheckQuery, [sku_code, country_code]).catch(err => {
       console.error('Duplicate check failed:', err);
       return [[], null];
     });
@@ -154,12 +150,12 @@ router.post('/', async (req, res) => {
     if (duplicateCheckResult && duplicateCheckResult.length > 0) {
       return res.status(400).json({
         success: false,
-        message: '该SKU在指定国家已有相同的标签模板关联'
+        message: '该SKU在指定国家已有关联'
       });
     }
     
-    const insertQuery = 'INSERT INTO sku_label (sku_code, country_code, label_id, fnsku, title, left_text, production_date) VALUES (?, ?, ?, ?, ?, ?, ?)';
-    const insertValues = [sku_code, country_code, label_id, fnsku, title, left_text || null, production_date || null];
+    const insertQuery = 'INSERT INTO sku_label (sku_code, country_code, fnsku, title, left_text, production_date) VALUES (?, ?, ?, ?, ?, ?)';
+    const insertValues = [sku_code, country_code, fnsku, title, left_text || null, production_date || null];
     const insertResult = await db.query(insertQuery, insertValues).catch(err => {
       console.error('Insert failed:', err);
       throw err; // 重新抛出错误以便在catch块中处理
@@ -170,12 +166,11 @@ router.post('/', async (req, res) => {
     }
     
     // 获取新创建的记录
-    const newRecordQuery = 'SELECT sl.id, sl.sku_code, sl.country_code, sl.label_id, sl.fnsku, sl.title, sl.left_text, sl.production_date, sl.created_at, '+
-                          'p.product_name, c.country_name, lt.length, lt.width ' +
+    const newRecordQuery = 'SELECT sl.id, sl.sku_code, sl.country_code, sl.fnsku, sl.title, sl.left_text, sl.production_date, sl.created_at, '+
+                          'p.product_name, c.country_name ' +
                           'FROM sku_label sl ' +
                           'LEFT JOIN product_sku p ON sl.sku_code = p.sku_code ' +
                           'LEFT JOIN country c ON sl.country_code = c.country_code ' +
-                          'LEFT JOIN label_template lt ON sl.label_id = lt.id ' +
                           'WHERE sl.id = ?';
     const [newRecordResult] = await db.query(newRecordQuery, [insertResult.insertId]).catch(err => {
       console.error('Fetch new record failed:', err);
@@ -200,18 +195,18 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { label_id, fnsku, title, left_text, production_date } = req.body;
+    const { fnsku, title, left_text, production_date } = req.body;
     
     // 验证必填字段
-    if (!label_id || !fnsku || !title) {
+    if (!fnsku || !title) {
       return res.status(400).json({
         success: false,
-        message: '标签模板ID、FNSKU编号和标签标题为必填项'
+        message: 'FNSKU编号和标签标题为必填项'
       });
     }
     
     // 先检查SKU标签关联是否存在
-    const checkQuery = 'SELECT sku_code, country_code, label_id FROM sku_label WHERE id = ?';
+    const checkQuery = 'SELECT sku_code, country_code FROM sku_label WHERE id = ?';
     const [checkResult] = await db.query(checkQuery, [id]).catch(err => {
       console.error('Check record existence failed:', err);
       return [[], null];
@@ -224,53 +219,20 @@ router.put('/:id', async (req, res) => {
       });
     }
     
-    // 检查标签模板是否存在
-    const labelCheckQuery = 'SELECT id FROM label_template WHERE id = ?';
-    const [labelCheckResult] = await db.query(labelCheckQuery, [label_id]).catch(err => {
-      console.error('Label template check failed:', err);
-      return [[], null];
-    });
+    const updateQuery = 'UPDATE sku_label SET fnsku = ?, title = ?, left_text = ?, production_date = ? WHERE id = ?';
+    const updateValues = [fnsku, title, left_text || null, production_date || null, id];
     
-    if (!labelCheckResult || labelCheckResult.length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: '标签模板不存在'
-      });
-    }
-    
-    const { sku_code, country_code } = checkResult[0];
-    
-    // 检查是否会导致唯一键冲突（如果更改了label_id）
-    if (label_id !== checkResult[0].label_id) {
-      const conflictCheckQuery = 'SELECT id FROM sku_label WHERE sku_code = ? AND label_id = ? AND country_code = ? AND id != ?';
-      const [conflictCheckResult] = await db.query(conflictCheckQuery, [sku_code, label_id, country_code, id]).catch(err => {
-        console.error('Conflict check failed:', err);
-        return [[], null];
-      });
-      
-      if (conflictCheckResult && conflictCheckResult.length > 0) {
-        return res.status(400).json({
-          success: false,
-          message: '该SKU在指定国家已有相同的标签模板关联'
-        });
-      }
-    }
-    
-    const updateQuery = 'UPDATE sku_label SET label_id = ?, fnsku = ?, title = ?, left_text = ?, production_date = ? WHERE id = ?';
-    const updateValues = [label_id, fnsku, title, left_text || null, production_date || null, id];
-    
-    const [updateResult] = await db.query(updateQuery, updateValues).catch(err => {
+    const updateResult = await db.query(updateQuery, updateValues).catch(err => {
       console.error('Update failed:', err);
       throw err; // 重新抛出错误以便在catch块中处理
     });
     
     // 获取更新后的记录
-    const updatedRecordQuery = 'SELECT sl.id, sl.sku_code, sl.country_code, sl.label_id, sl.fnsku, sl.title, sl.left_text, sl.production_date, sl.created_at, '+
-                             'p.product_name, c.country_name, lt.length, lt.width ' +
+    const updatedRecordQuery = 'SELECT sl.id, sl.sku_code, sl.country_code, sl.fnsku, sl.title, sl.left_text, sl.production_date, sl.created_at, '+
+                             'p.product_name, c.country_name ' +
                              'FROM sku_label sl ' +
                              'LEFT JOIN product_sku p ON sl.sku_code = p.sku_code ' +
                              'LEFT JOIN country c ON sl.country_code = c.country_code ' +
-                             'LEFT JOIN label_template lt ON sl.label_id = lt.id ' +
                              'WHERE sl.id = ?';
     const [updatedRecordResult] = await db.query(updatedRecordQuery, [id]).catch(err => {
       console.error('Fetch updated record failed:', err);

@@ -30,14 +30,13 @@ router.get('/', async (req, res) => {
 router.get('/list', async (req, res) => {
   try {
     // 可以根据查询参数过滤结果
-    const { sku_code, country_code, label_id } = req.query;
+    const { sku_code, country_code } = req.query;
     
-    let query = 'SELECT sl.id, sl.sku_code, sl.country_code, sl.label_id, sl.fnsku, sl.title, sl.left_text, sl.production_date, sl.created_at '+
-              ', p.sku_code, c.country_name, lt.length, lt.width ' +
+    let query = 'SELECT sl.id, sl.sku_code, sl.country_code, sl.fnsku, sl.title, sl.left_text, sl.production_date, sl.created_at '+
+              ', p.product_name, c.country_name ' +
               'FROM sku_label sl ' +
               'LEFT JOIN product_sku p ON sl.sku_code = p.sku_code ' +
               'LEFT JOIN country c ON sl.country_code = c.country_code ' +
-              'LEFT JOIN label_template lt ON sl.label_id = lt.id ' +
               'WHERE 1=1';
     const queryParams = [];
     
@@ -49,11 +48,6 @@ router.get('/list', async (req, res) => {
     if (country_code) {
       query += ' AND sl.country_code = ?';
       queryParams.push(country_code);
-    }
-    
-    if (label_id) {
-      query += ' AND sl.label_id = ?';
-      queryParams.push(label_id);
     }
     
     query += ' ORDER BY sl.created_at DESC';
@@ -78,15 +72,14 @@ router.get('/edit/:id', async (req, res) => {
   try {
     const { id } = req.params;
     
-    const query = 'SELECT sl.id, sl.sku_code, sl.country_code, sl.label_id, sl.fnsku, sl.title, sl.left_text, sl.production_date '+
-                ', p.sku_code, c.country_name, lt.length, lt.width ' +
+    const query = 'SELECT sl.id, sl.sku_code, sl.country_code, sl.fnsku, sl.title, sl.left_text, sl.production_date, '+
+                'p.product_name, c.country_name ' +
                 'FROM sku_label sl ' +
                 'LEFT JOIN product_sku p ON sl.sku_code = p.sku_code ' +
                 'LEFT JOIN country c ON sl.country_code = c.country_code ' +
-                'LEFT JOIN label_template lt ON sl.label_id = lt.id ' +
                 'WHERE sl.id = ?';
     
-    const [results] = await db.query(query, [id]);
+    const results = await db.query(query, [id]);
     
     if (results.length === 0) {
       return res.status(404).json({

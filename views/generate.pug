@@ -97,32 +97,89 @@ html(lang='zh-CN')
         /* 尺寸将通过JavaScript根据模板动态设置 */
       }
       .label-title {
-        font-size: 18px;
+        font-size: 9px;
         font-weight: bold;
+        font-family: 'SimHei', '黑体', sans-serif;
         text-align: center;
-        margin-bottom: 10px;
+        margin-bottom: 20px;
+        transform: translateY(-10px);
       }
-      .label-info {
+      /* 主要内容区域 - 左右布局 */
+      .label-main-content {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 90px;
+        height: 53px;
+        width: 280px;
+      }
+      .label-left-section {
+        width: 30%;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        transform: translateX(-30px);
+      }
+      .label-right-section {
+        width: 65%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      #barcodeText {
+        width: 100%;
+        height: 40px;
+        transform: translateY(-10px);
+      }
+      /* 底部区域 - 左右布局 */
+      .label-bottom-section {
+        display: flex;
+        justify-content: space-between;
+        position: relative;
+        height: 30px;
+      }
+      .label-bottom-left {
+        width: 40%;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+        font-size: 10px;
+        font-weight: 800;
+      }
+      .label-bottom-right {
+        width: 60%;
+        display: flex;
+        align-items: flex-end;
+        justify-content: flex-end;
+      }
+      /* 调整公司信息和二维码布局 */
+      .company-info {
+        text-align: right;
+        margin-right: 10px;
+        max-width: 120px;
+      }
+      .qr-code {
+        width: 100mm;
+        height: 15mm;
+        transform: translateX(-270px);
+        transform: translateY(-170px);
+      }
+      #companyEmail {
+        text-align: left;
         font-size: 12px;
         margin-bottom: 5px;
+        width: 160px;
+      }
+      #companyWebsite {
+        text-align: left;
+        font-size: 12px;
+        margin-bottom: 5px;
+        width: 180px;;
       }
       .barcode-container {
         margin: 15px 0;
         text-align: center;
       }
-      .company-info {
-        position: absolute;
-        bottom: 10mm;
-        right: 10mm;
-        text-align: right;
-      }
-      .qr-code {
-        position: absolute;
-        bottom: 10mm;
-        right: 10mm;
-        width: 40mm;
-        height: 40mm;
-      }
+
       @media print {
         body * {
           visibility: hidden;
@@ -135,6 +192,19 @@ html(lang='zh-CN')
           left: 0;
           top: 0;
           border: none;
+          width: 100%;
+          height: 100%;
+          display: block;
+        }
+        /* 确保新的布局在打印时也能正确显示 */
+        .label-main-content,
+        .label-bottom-section,
+        .label-left-section,
+        .label-right-section,
+        .label-bottom-left,
+        .label-bottom-right {
+          display: flex;
+          position: static !important;
         }
       }
       /* 响应式设计 */
@@ -158,21 +228,13 @@ html(lang='zh-CN')
         .selection-panel
           div.section-title 选择参数
           
-          // SKU选择
+          // SKU标签选择
           .form-group
-            label(for='skuSelect') SKU选择
-            select#skuSelect.form-select
-              option(value='') -- 请选择SKU --
-              each sku in skus
-                option(value=sku.sku_code)= sku.sku_code + ' - ' + sku.product_name
-          
-          // 国家选择
-          .form-group
-            label(for='countrySelect') 选择国家
-            select#countrySelect.form-select
-              option(value='') -- 请选择国家 --
-              each country in countries
-                option(value=country.id)= country.name
+            label(for='skuLabelSelect') SKU标签选择
+            select#skuLabelSelect.form-select
+              option(value='') -- 请选择SKU标签 --
+              each skuLabel in skuLabels
+                option(value=skuLabel.id)= `${skuLabel.sku_code} - ${skuLabel.product_name} (${skuLabel.country_name})`
           
           // 标签模板选择
           .form-group
@@ -181,11 +243,6 @@ html(lang='zh-CN')
               option(value='') -- 请选择标签模板 --
               each template in labelTemplates
                 option(value=template.id)= `模板 ${template.id} (${template.length}x${template.width}mm)`
-          
-          // 数量输入
-          .form-group
-            label(for='quantity') 数量
-            input#quantity.form-control(type='number', min='1', value='1')
           
           // 操作按钮
           button#generateBtn.btn.btn-primary 生成标签
@@ -201,28 +258,41 @@ html(lang='zh-CN')
           
           #labelPreview
             .label-container
+              // 1. 标题区域 - 黑体，大字体
               div.label-title#productName 产品名称
-              div.label-info#modelInfo Model: 
-              div.label-info#lengthInfo Length: 
-              div.label-info#materialInfo Material: 
-              div.label-info#techInfo CRI > 80, CCT:6000K
-              div.label-info#fluxInfo Luminous Flux: 
-              div.label-info#areaInfo Reading Area: 
-              div.label-info#madeInfo MADE IN CHINA
-              div.label-info#pdInfo PD:28-SEP-25
-              div.barcode-container
-                svg#barcode
-                div#barcodeText
-              div.company-info
-                img#companyLogo(src='/images/logo.png' alt='公司Logo' style='max-width: 80px; margin-bottom: 5px;')
-                div#companyEmail Email: support@homina.top
-                div#companyWebsite Forum: http://www.homina.top
-              div.qr-code#qrcode
+              
+              // 2. 主要内容区域
+              .label-main-content
+                // 左侧区域 - 产品规格信息Example
+                .label-left-section
+                  div.label-info#modelInfo TextExample: 
+                
+                // 右侧区域 - 条码
+                .label-right-section
+                  div.barcode-container
+                    svg#barcode
+                    div#barcodeText
+              
+              // 3. 底部区域
+              .label-bottom-section
+                // 左下 - 中国制造和生产日期
+                .label-bottom-left
+                  div.label-info#madeInfo MADE IN CHINA
+                  div.label-info#pdInfo PD:28-SEP-25
+                
+                // 右下 - 品牌logo，邮箱，网址和二维码
+                .label-bottom-right
+                  div.company-info
+                    img#companyLogo(src='' alt='公司Logo' style='max-width: 150px; margin-bottom: 5px;')
+                    div#companyEmail Email: support@homina.top
+                    div#companyWebsite Web: http://www.homina.top
+                  div.qr-code#qrcode
+                    img#companyLogo(src='' alt='QR' style='max-width: 80px; margin-bottom: 5px;')
+
       
     script.
       document.addEventListener('DOMContentLoaded', function() {
-        const skuSelect = document.getElementById('skuSelect');
-        const countrySelect = document.getElementById('countrySelect');
+        const skuLabelSelect = document.getElementById('skuLabelSelect');
         const labelTemplateSelect = document.getElementById('labelTemplateSelect');
         const generateBtn = document.getElementById('generateBtn');
         const printBtn = document.getElementById('printBtn');
@@ -253,12 +323,11 @@ html(lang='zh-CN')
         
         // 选择变化时启用/禁用生成按钮
         function checkFormValidity() {
-          generateBtn.disabled = !(skuSelect.value && countrySelect.value && labelTemplateSelect.value);
+          generateBtn.disabled = !(skuLabelSelect.value && labelTemplateSelect.value);
         }
         
         // 监听选择变化
-        skuSelect.addEventListener('change', checkFormValidity);
-        countrySelect.addEventListener('change', checkFormValidity);
+        skuLabelSelect.addEventListener('change', checkFormValidity);
         labelTemplateSelect.addEventListener('change', checkFormValidity);
         
         // 初始化按钮状态
@@ -267,46 +336,13 @@ html(lang='zh-CN')
         // 检查URL参数并自动填充
         function checkAndFillUrlParams() {
           const urlParams = getUrlParams();
-          if (urlParams.sku_code || urlParams.country_code || urlParams.label_id) {
-            // 如果有SKU参数，尝试选择对应的选项
-            if (urlParams.sku_code) {
-              for (let i = 0; i < skuSelect.options.length; i++) {
-                if (skuSelect.options[i].value === urlParams.sku_code) {
-                  skuSelect.selectedIndex = i;
-                  break;
-                }
-              }
-            }
-            
-            // 如果有国家参数，尝试选择对应的选项
-            if (urlParams.country_code) {
-              try {
-                // 通过国家代码查找对应的选项文本
-                for (let i = 0; i < countrySelect.options.length; i++) {
-                  // 国家代码通常是国家名称的英文缩写
-                  // 这里我们假设国家名称可能包含代码信息
-                  if (countrySelect.options[i].text.toLowerCase().includes(urlParams.country_code.toLowerCase()) || 
-                      countrySelect.options[i].value === urlParams.country_code) {
-                    countrySelect.selectedIndex = i;
-                    break;
-                  }
-                }
-              } catch (error) {
-                console.warn('国家参数处理出错:', error);
-              }
-            }
-            
-            // 如果有标签模板参数，尝试选择对应的选项
-            if (urlParams.label_id) {
-              try {
-                for (let i = 0; i < labelTemplateSelect.options.length; i++) {
-                  if (labelTemplateSelect.options[i].value == urlParams.label_id) {
-                    labelTemplateSelect.selectedIndex = i;
-                    break;
-                  }
-                }
-              } catch (error) {
-                console.warn('标签模板参数处理出错:', error);
+          if (urlParams.id) {
+            // 如果有ID参数，直接使用ID获取SKU标签详情
+            // 自动选择对应的SKU标签
+            for (let i = 0; i < skuLabelSelect.options.length; i++) {
+              if (skuLabelSelect.options[i].value == urlParams.id) {
+                skuLabelSelect.selectedIndex = i;
+                break;
               }
             }
             
@@ -320,25 +356,54 @@ html(lang='zh-CN')
                 generateBtn.click();
               }, 500);
             }
+          } else if (urlParams.sku_code && urlParams.country_code) {
+            // 兼容旧的参数方式
+            // 根据sku_code和country_code查找对应的sku_label
+            axios.get('/api/sku-label', {
+              params: {
+                sku_code: urlParams.sku_code,
+                country_code: urlParams.country_code
+              }
+            })
+            .then(function(response) {
+              if (response.data.success && response.data.data && response.data.data.length > 0) {
+                const skuLabel = response.data.data[0];
+                // 自动选择对应的SKU标签
+                for (let i = 0; i < skuLabelSelect.options.length; i++) {
+                  if (skuLabelSelect.options[i].value == skuLabel.id) {
+                    skuLabelSelect.selectedIndex = i;
+                    break;
+                  }
+                }
+                
+                // 重新检查表单有效性
+                checkFormValidity();
+                
+                // 如果所有必填字段都已填充，则自动生成标签
+                if (!generateBtn.disabled) {
+                  // 稍微延迟一下，确保DOM已经完全渲染
+                  setTimeout(() => {
+                    generateBtn.click();
+                  }, 500);
+                }
+              }
+            })
+            .catch(function(error) {
+              console.error('获取SKU标签详情失败:', error);
+            });
           }
         }
         
         // 确保页面完全加载后再执行URL参数检查
         window.addEventListener('load', checkAndFillUrlParams);
         
+        // 生成标签按钮点击事件
         generateBtn.addEventListener('click', function() {
-          const skuCode = skuSelect.value;
-          const countryId = countrySelect.value;
+          const skuLabelId = skuLabelSelect.value;
           const labelTemplateId = labelTemplateSelect.value;
-          const quantity = document.getElementById('quantity').value;
           
-          if (!skuCode) {
-            showMessage('请选择SKU', 'danger');
-            return;
-          }
-          
-          if (!countryId) {
-            showMessage('请选择国家', 'danger');
+          if (!skuLabelId) {
+            showMessage('请选择SKU标签', 'danger');
             return;
           }
           
@@ -350,48 +415,73 @@ html(lang='zh-CN')
           // 显示加载状态
           showLoading();
           
-          // 获取产品详情 - 使用正确的sku_label API
-          axios.get(`/api/sku-label/${skuCode}`)
-            .then(function(skuResponse) {
-              const sku = skuResponse.data.data;
+          // 获取SKU标签详情
+          axios.get(`/api/sku-label/${skuLabelId}`)
+            .then(function(skuLabelResponse) {
+              // 检查响应数据是否存在
+              if (!skuLabelResponse.data) {
+                throw new Error('无效的SKU标签数据响应: 无响应数据');
+              }
               
-              // 根据选择的国家ID获取国家名称 - 不依赖countries变量
-              let countryName = 'N/A';
-              for (let i = 0; i < countrySelect.options.length; i++) {
-                if (countrySelect.options[i].value == countryId) {
-                  countryName = countrySelect.options[i].text;
-                  break;
-                }
+              if (!skuLabelResponse.data.success) {
+                throw new Error(skuLabelResponse.data.message || '获取SKU标签失败');
+              }
+              
+              if (!skuLabelResponse.data.data) {
+                throw new Error('无效的SKU标签数据响应: 数据为空');
+              }
+              
+              const skuLabel = skuLabelResponse.data.data;
+              
+              // 检查skuLabel对象是否存在
+              if (!skuLabel) {
+                throw new Error('未找到SKU标签数据');
               }
               
               // 获取标签模板详情
               return axios.get(`/api/label/${labelTemplateId}`)
                 .then(function(templateResponse) {
+                  // 检查模板响应数据是否存在
+                  if (!templateResponse.data || !templateResponse.data.data) {
+                    throw new Error('无效的标签模板数据响应');
+                  }
+                  
                   const template = templateResponse.data.data;
                   
                   // 缓存模板数据
                   labelTemplateCache[labelTemplateId] = template;
                   
                   // 填充标签信息 - 标题包含产品名称和国家
-                  document.getElementById('productName').textContent = (sku.product_name || '产品名称') + ' - ' + countryName;
-                  document.getElementById('modelInfo').textContent = `Model: ${sku.model || 'N/A'}`;
-                  document.getElementById('lengthInfo').textContent = `Length: ${sku.length || 'N/A'} cm`;
-                  document.getElementById('materialInfo').textContent = `Material: ${sku.material || 'N/A'}`;
-                  document.getElementById('techInfo').textContent = sku.tech_specs || 'CRI > 80, CCT:6000K';
-                  document.getElementById('fluxInfo').textContent = `Luminous Flux: ${sku.luminous_flux || 'N/A'}`;
-                  document.getElementById('areaInfo').textContent = `Reading Area: ${sku.reading_area || 'N/A'}`;
+                  document.getElementById('productName').textContent = (skuLabel.title || '产品名称') + ' - ' + (skuLabel.country_name || '未知国家');
+                  document.getElementById('modelInfo').textContent = skuLabel.left_text || 'N/A';
                   
                   // 添加国家信息
-                  document.getElementById('madeInfo').textContent = `MADE IN CHINA for ${countryName}`;
+                  document.getElementById('madeInfo').textContent = `MADE IN CHINA for ${skuLabel.country_name || '未知国家'}`;
+                  
+                  // 处理生产日期
+                  if (skuLabel.production_date) {
+                    // 将ISO日期格式转换为"DD-MMM-YY"格式
+                    const date = new Date(skuLabel.production_date);
+                    const options = { day: '2-digit', month: 'short', year: '2-digit' };
+                    const formattedDate = date.toLocaleDateString('en-GB', options).replace(/ /g, '-').toUpperCase();
+                    document.getElementById('pdInfo').textContent = `PD:${formattedDate}`;
+                  } else {
+                    document.getElementById('pdInfo').textContent = 'PD:N/A';
+                  }
                   
                   // 应用标签模板设置 - 设置标签尺寸
                   const labelContainer = document.querySelector('.label-container');
-                  labelContainer.style.width = template.width + 'mm';
-                  labelContainer.style.height = template.length + 'mm';
+                  labelContainer.style.width = template.length + 'mm';
+                  labelContainer.style.height = template.width + 'mm';
                   
                   // 应用Logo设置
                   if (template.logo_path) {
-                    document.getElementById('companyLogo').src = template.logo_path;
+                    // 如果模板中有logo_path，则显示对应的图片
+                    if (template.logo_path === 'homina' || template.logo_path === 'logo') {
+                      document.getElementById('companyLogo').src = '/images/' + template.logo_path + '.png';
+                    } else {
+                      document.getElementById('companyLogo').src = '/images/' + template.logo_path + '.png';
+                    }
                     document.getElementById('companyLogo').style.display = 'block';
                   } else {
                     document.getElementById('companyLogo').style.display = 'none';
@@ -410,23 +500,25 @@ html(lang='zh-CN')
                   }
                   
                   // 生成条形码 - 使用fnsku
-                  const barcodeValue = sku.fnsku || sku.asin || sku.sku_code;
+                  const barcodeValue = skuLabel.fnsku || skuLabel.sku_code;
                   document.getElementById('barcodeText').textContent = barcodeValue;
                   JsBarcode('#barcode', barcodeValue, {
                     width: 2,
-                    height: 60,
+                    height: 40,
                     displayValue: false
                   });
                   
-                  // 调整条码位置到中间靠右
-                  const barcodeContainer = document.querySelector('.barcode-container');
-                  barcodeContainer.style.textAlign = 'right';
-                  barcodeContainer.style.marginTop = '20px';
-                  barcodeContainer.style.marginRight = '20px';
+                  // 条码位置通过CSS类已设置为居中显示
+                  // 保持条码容器的默认样式，由CSS控制布局
                   
                   // 应用二维码设置
                   if (template.qr_code_link) {
-                    document.getElementById('qrcode').innerHTML = `<img src="${template.qr_code_link}" alt="QR码" style="width:100%;height:100%;object-fit:contain;">`;
+                    // 如果模板中有qr_code_link，则显示对应的图片
+                    if (template.qr_code_link === 'qr') {
+                      document.getElementById('qrcode').innerHTML = '<img src="/images/qr.png" style="width:100%;height:100%;object-fit:contain;" alt="QR Code">';
+                    } else {
+                      document.getElementById('qrcode').innerHTML = '<img src="/images/' + template.qr_code_link + '.png" style="width:100%;height:100%;object-fit:contain;" alt="QR Code">';
+                    }
                   } else {
                     // 默认二维码占位
                     document.getElementById('qrcode').innerHTML = '<div style="width:100%;height:100%;background-color:#f0f0f0;display:flex;align-items:center;justify-content:center;">QR码位置</div>';
@@ -443,7 +535,11 @@ html(lang='zh-CN')
             .catch(function(error) {
               console.error('生成标签失败:', error);
               hideLoading();
-              showMessage('生成标签失败，请重试', 'danger');
+              // 提供更详细的错误信息
+              const errorMessage = error.response && error.response.data && error.response.data.message 
+                ? `生成标签失败: ${error.response.data.message}` 
+                : '生成标签失败，请重试';
+              showMessage(errorMessage, 'danger');
             });
         });
         
@@ -455,17 +551,13 @@ html(lang='zh-CN')
           }
           
           // 记录打印历史
-          const skuCode = skuSelect.value;
-          const countryId = countrySelect.value;
+          const skuLabelId = skuLabelSelect.value;
           const labelTemplateId = labelTemplateSelect.value;
-          const quantity = document.getElementById('quantity').value;
           
           // 静默提交打印记录（不阻塞打印流程）
           axios.post('/api/print-log', {
-            sku_code: skuCode,
-            country_id: countryId,
+            sku_label_id: skuLabelId,
             label_template_id: labelTemplateId,
-            quantity: quantity,
             printed_at: new Date().toISOString()
           }).catch(function(error) {
             console.error('记录打印日志失败:', error);

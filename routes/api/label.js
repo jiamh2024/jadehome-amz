@@ -148,17 +148,6 @@ router.delete('/:id', async (req, res) => {
       });
     }
     
-    // 检查是否有SKU关联到此标签模板
-    const skuLabelQuery = 'SELECT id FROM sku_label WHERE label_id = ?';
-    const skuLabelResult = await db.query(skuLabelQuery, [id]);
-    
-    if (skuLabelResult.length > 0) {
-      return res.status(400).json({
-        success: false,
-        message: '该标签模板已有SKU关联，无法删除'
-      });
-    }
-    
     const deleteQuery = 'DELETE FROM label_template WHERE id = ?';
     await db.query(deleteQuery, [id]);
     

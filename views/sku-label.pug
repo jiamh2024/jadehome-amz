@@ -145,21 +145,16 @@ html(lang='zh-CN')
         .card-body
           form(id='add-sku-label-form')
             .row
-              .col-md-4
+              .col-md-6
                 .form-group
                   label(for='sku_code') SKU
                   select#sku_code.form-select(name='sku_code' required)
                     option(value='') 请选择SKU
-              .col-md-4
+              .col-md-6
                 .form-group
                   label(for='country_code') 国家
                   select#country_code.form-select(name='country_code' required)
                     option(value='') 请选择国家
-              .col-md-4
-                .form-group
-                  label(for='label_id') 标签模板
-                  select#label_id.form-select(name='label_id' required)
-                    option(value='') 请选择标签模板
             .row
               .col-md-4
                 .form-group
@@ -190,10 +185,6 @@ html(lang='zh-CN')
               label(for='filter-country_code') 筛选国家
               select#filter-country_code.form-select(name='filter-country_code')
                 option(value='') 全部国家
-            .filter-group
-              label(for='filter-label_id') 筛选标签模板
-              select#filter-label_id.form-select(name='filter-label_id')
-                option(value='') 全部标签模板
             button#filter-button.btn.btn-secondary(type='button') 筛选
             button#reset-button.btn.btn-secondary(type='button') 重置
           table#sku-label-table.table.table-hover
@@ -306,29 +297,7 @@ html(lang='zh-CN')
       
       // 重新渲染标签模板选择框
       function renderLabelTemplateSelects() {
-        // 渲染主表单中的标签模板选择框
-        const labelIdSelect = document.getElementById('label_id');
-        const labelIdOptions = labelIdSelect.querySelectorAll('option:not([value=""])');
-        labelIdOptions.forEach(option => option.remove());
-        
-        labelTemplateList.forEach(label => {
-          const option = document.createElement('option');
-          option.value = label.id;
-          option.textContent = `尺寸: ${label.length}x${label.width}`;
-          labelIdSelect.appendChild(option);
-        });
-        
-        // 渲染筛选条件中的标签模板选择框
-        const filterLabelIdSelect = document.getElementById('filter-label_id');
-        const filterLabelIdOptions = filterLabelIdSelect.querySelectorAll('option:not([value=""])');
-        filterLabelIdOptions.forEach(option => option.remove());
-        
-        labelTemplateList.forEach(label => {
-          const option = document.createElement('option');
-          option.value = label.id;
-          option.textContent = `尺寸: ${label.length}x${label.width}`;
-          filterLabelIdSelect.appendChild(option);
-        });
+        // 不再需要渲染标签模板选择框，因为已移除label_id字段
       }
       
       // 重新渲染SKU选择框
@@ -393,7 +362,6 @@ html(lang='zh-CN')
         const queryParams = new URLSearchParams();
         if (filters.sku_code) queryParams.append('sku_code', filters.sku_code);
         if (filters.country_code) queryParams.append('country_code', filters.country_code);
-        if (filters.label_id) queryParams.append('label_id', filters.label_id);
         
         axios.get(`/api/sku-label?${queryParams.toString()}`)
           .then(response => {
@@ -429,9 +397,9 @@ html(lang='zh-CN')
           row.innerHTML = `
             <td>${item.id}</td>
             <td>${item.sku_code}</td>
-            <td>${item.sku_code || '-'}</td>
+            <td>${item.product_name || '-'}</td>
             <td>${item.country_name || '-'}</td>
-            <td>${item.length}x${item.width}</td>
+            <td>-</td>
             <td>${item.fnsku || '-'}</td>
             <td>${item.title || '-'}</td>
             <td>${item.left_text || '-'}</td>
@@ -444,8 +412,7 @@ html(lang='zh-CN')
                 <button class="btn btn-sm btn-secondary print-button" 
                         data-id="${item.id}" 
                         data-sku-code="${item.sku_code}" 
-                        data-country-code="${item.country_code}" 
-                        data-label-id="${item.label_id}">
+                        data-country-code="${item.country_code}">
                   打印
                 </button>
               </div>
@@ -482,25 +449,11 @@ html(lang='zh-CN')
         const formData = new FormData(addSkuLabelForm);
         
         // 验证必填字段 - 添加trim()去除空白字符
-        const skuCode = formData.get('sku_code')?.trim();
-        const countryCode = formData.get('country_code')?.trim();
-        const labelId = formData.get('label_id')?.trim();
         const fnsku = formData.get('fnsku')?.trim();
         const title = formData.get('title')?.trim();
         
-        // 添加日志记录，查看字段值
-        console.log('表单字段值：');
-        console.log('sku_code:', skuCode);
-        console.log('country_code:', countryCode);
-        console.log('label_id:', labelId);
-        console.log('fnsku:', fnsku);
-        console.log('title:', title);
-        
         // 检查哪些字段为空或只包含空白字符
         const emptyFields = [];
-        if (!skuCode) emptyFields.push('SKU');
-        if (!countryCode) emptyFields.push('国家');
-        if (!labelId) emptyFields.push('标签模板');
         if (!fnsku) emptyFields.push('FNSKU');
         if (!title) emptyFields.push('标题');
         
@@ -514,7 +467,6 @@ html(lang='zh-CN')
         if (currentEditId) {
           // 更新操作
           axios.put(`/api/sku-label/${currentEditId}`, {
-            label_id: formData.get('label_id'),
             fnsku: formData.get('fnsku'),
             title: formData.get('title'),
             left_text: formData.get('left_text'),
@@ -542,7 +494,6 @@ html(lang='zh-CN')
           const data = {
             sku_code: formData.get('sku_code'),
             country_code: formData.get('country_code'),
-            label_id: formData.get('label_id'),
             fnsku: formData.get('fnsku'),
             title: formData.get('title'),
             left_text: formData.get('left_text'),
@@ -584,7 +535,6 @@ html(lang='zh-CN')
               const data = result.data;
               document.getElementById('sku_code').value = data.sku_code;
               document.getElementById('country_code').value = data.country_code;
-              document.getElementById('label_id').value = data.label_id;
               document.getElementById('fnsku').value = data.fnsku || '';
               document.getElementById('title').value = data.title || '';
               document.getElementById('left_text').value = data.left_text || '';
@@ -649,8 +599,7 @@ html(lang='zh-CN')
       function handleFilter() {
         const filters = {
           sku_code: document.getElementById('filter-sku_code').value,
-          country_code: document.getElementById('filter-country_code').value,
-          label_id: document.getElementById('filter-label_id').value
+          country_code: document.getElementById('filter-country_code').value
         };
         loadSkuLabelList(filters);
       }
@@ -659,7 +608,6 @@ html(lang='zh-CN')
       function handleReset() {
         document.getElementById('filter-sku_code').value = '';
         document.getElementById('filter-country_code').value = '';
-        document.getElementById('filter-label_id').value = '';
         loadSkuLabelList();
       }
       
@@ -671,15 +619,13 @@ html(lang='zh-CN')
       // 处理打印按钮点击
       function handlePrint(event) {
         const button = event.target;
-        const skuCode = button.getAttribute('data-sku-code');
-        const countryCode = button.getAttribute('data-country-code');
-        const labelId = button.getAttribute('data-label-id');
-        
-        // 构建URL参数
+        const id = button.getAttribute('data-id');
+        //const skuCode = button.getAttribute('data-sku-code');
+        //const countryCode = button.getAttribute('data-country-code');
         const params = new URLSearchParams();
-        params.append('sku_code', skuCode);
-        params.append('country_code', countryCode);
-        params.append('label_id', labelId);
+        params.append('id', id);
+        //params.append('sku_code', skuCode);
+        //params.append('country_code', countryCode);
         
         // 跳转到generate页面并传递参数
         window.location.href = `/label/generate?${params.toString()}`;

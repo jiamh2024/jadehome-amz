@@ -6,52 +6,34 @@ var db = require('../db/db');
 router.get('/generate', function(req, res, next) {
   // 使用Promise处理多个数据库查询
   Promise.all([
-    // 查询所有SKU以供选择
+    // 查询所有SKU标签关联以供选择
     new Promise((resolve, reject) => {
-      const sql = 'SELECT sku_code, product_name FROM product_sku WHERE is_active = 1';
-      db.query(sql, function(error, skus) {
+      const sql = 'SELECT sl.id, sl.sku_code, sl.country_code, p.product_name, c.country_name FROM sku_label sl LEFT JOIN product_sku p ON sl.sku_code = p.sku_code LEFT JOIN country c ON sl.country_code = c.country_code ORDER BY sl.created_at DESC';
+      db.query(sql, function(error, skuLabels) {
         if (error) {
           reject(error);
         } else {
-          resolve(skus);
+          resolve(skuLabels);
         }
       });
     }),
     
-    // 查询所有国家以供选择
-        new Promise((resolve, reject) => {
-          const sql = 'SELECT id, country_name FROM country';
-          db.query(sql, function(error, countries) {
-            if (error) {
-              reject(error);
-            } else {
-              // 转换列名，保持前端代码兼容性
-              const formattedCountries = countries.map(country => ({
-                id: country.id,
-                name: country.country_name
-              }));
-              resolve(formattedCountries);
-            }
-          });
-        }),
-    
     // 查询所有标签模板以供选择
-        new Promise((resolve, reject) => {
-          const sql = 'SELECT id, length, width FROM label_template';
-          db.query(sql, function(error, labelTemplates) {
-            if (error) {
-              reject(error);
-            } else {
-              resolve(labelTemplates);
-            }
-          });
-        })
+    new Promise((resolve, reject) => {
+      const sql = 'SELECT id, length, width FROM label_template ORDER BY created_at DESC';
+      db.query(sql, function(error, labelTemplates) {
+        if (error) {
+          reject(error);
+        } else {
+          resolve(labelTemplates);
+        }
+      });
+    })
   ])
-  .then(([skus, countries, labelTemplates]) => {
+  .then(([skuLabels, labelTemplates]) => {
     res.render('generate', {
       title: '生成发货标签',
-      skus: skus,
-      countries: countries,
+      skuLabels: skuLabels,
       labelTemplates: labelTemplates
     });
   })
