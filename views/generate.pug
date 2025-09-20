@@ -97,11 +97,11 @@ html(lang='zh-CN')
         /* 尺寸将通过JavaScript根据模板动态设置 */
       }
       .label-title {
-        font-size: 12px;
+        font-size: 13px;
+        font-family: 'Impact, Charcoal, sans-serif';
         font-weight: bold;
-        font-family: 'SimHei', '黑体', sans-serif;
         text-align: center;
-        margin-bottom: 5px;
+        margin-bottom: 8px;
       }
       /* 主要内容区域 - 左右布局 */
       .label-main-content {
@@ -113,15 +113,17 @@ html(lang='zh-CN')
       }
       .label-left-section {
         width: 25%;
+        margin-left: 1mm;
         display: flex;
         flex-direction: column;
         justify-content: center;
       }
       .label-info {
         font-size: 8px;
+        font-family: 'Impact, Charcoal, sans-serif';
       }
       .label-right-section {
-        width: 78%;
+        width: 70%;
         display: flex;
         justify-content: center;
       }
@@ -139,6 +141,7 @@ html(lang='zh-CN')
       }
       .label-bottom-left {
         width: 30%;
+        font-family: 'Impact, Charcoal, sans-serif';
         display: flex;
         flex-direction: column;
         justify-content: flex-end;
@@ -457,8 +460,8 @@ html(lang='zh-CN')
                   labelTemplateCache[labelTemplateId] = template;
                   
                   // 填充标签信息 - 标题包含产品名称和国家
-                  document.getElementById('productName').textContent = (skuLabel.title || '产品名称') + ' - ' + (skuLabel.country_name || '未知国家');
-                  document.getElementById('modelInfo').textContent = skuLabel.left_text || 'N/A';
+                  document.getElementById('productName').textContent = (skuLabel.title || '产品名称') + ' - ' + (skuLabel.country_code || '未知国家');
+                  document.getElementById('modelInfo').innerHTML = skuLabel.left_text || 'N/A';
                   
                   // 添加国家信息
                   document.getElementById('madeInfo').textContent = `MADE IN CHINA`;
@@ -508,7 +511,7 @@ html(lang='zh-CN')
                   const barcodeValue = skuLabel.fnsku || skuLabel.sku_code;
                   document.getElementById('barcodeText').textContent = barcodeValue;
                   JsBarcode('#barcode', barcodeValue, {
-                    width: 1.5,
+                    width: 1.3,
                     height: 30,
                     displayValue: false
                   });
