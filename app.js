@@ -40,6 +40,7 @@ var locaApiRouter = require('./routes/api/loca');
 var kvApiRouter = require('./routes/api/amz-pkv');
 var labelApiRouter = require('./routes/api/label');
 var skuLabelApiRouter = require('./routes/api/sku-label');
+var amzSkuCtyApiRouter = require('./routes/api/amz-sku-cty');
 
 var amzApi = require('./routes/sp-api/amz-api');
 var amzApiRouter = amzApi.router;
@@ -68,6 +69,7 @@ app.use('/api/loca', locaApiRouter);
 app.use('/api/kv', kvApiRouter);
 app.use('/api/label', labelApiRouter);
 app.use('/api/sku-label', skuLabelApiRouter);
+app.use('/api/amz-sku-cty', amzSkuCtyApiRouter);
 
 app.use('/api/amzapi', amzApiRouter);
 app.use('/api/adsapi', adsApiRouter);
