@@ -14,10 +14,11 @@ const MARKETPLACES = {
 };
 
 /**
- * 从数据库获取所有需要处理的SKU数据
+ * 从数据库获取所有需要处理的SKU数据，包括各国特定的亚马逊SKU
  */
 async function getSkuDataFromDatabase(skuCode = null) {
   try {
+    // 首先获取基本SKU数据
     let query = 'SELECT * FROM product_sku WHERE is_active = 1';
     let params = [];
     
@@ -26,11 +27,56 @@ async function getSkuDataFromDatabase(skuCode = null) {
       params.push(skuCode);
     }
     
-    const rows = await db.query(query, params);
-    //onsole.log('查询SQL:', query);
+    const skuRows = await db.query(query, params);
+    
+    // 如果没有SKU数据，直接返回
+    if (!skuRows || skuRows.length === 0) {
+      return [];
+    }
+    
+    // 获取所有SKU的ID列表，用于批量查询国家SKU
+    const skuIds = skuRows.map(sku => sku.sku_id);
+    
+    // 查询所有SKU的国家特定SKU数据，并关联国家表获取country_code
+    const countrySkuQuery = `
+      SELECT 
+        a.sku_id, 
+        c.country_code, 
+        a.country_sku 
+      FROM 
+        amz_sku_cty a
+      JOIN 
+        country c ON a.country_id = c.id
+      WHERE 
+        a.sku_id IN (?)`;
+    
+    const countrySkuRows = await db.query(countrySkuQuery, [skuIds]);
+    
+    // 将国家SKU数据整理成Map，方便查找
+    const countrySkuMap = new Map();
+    countrySkuRows.forEach(row => {
+      const key = `${row.sku_id}_${row.country_code}`;
+      countrySkuMap.set(key, row.country_sku);
+    });
+    
+    // 为每个SKU添加国家特定SKU信息
+    const enhancedSkus = skuRows.map(sku => {
+      const enhancedSku = { ...sku };
+      
+      // 为每个市场添加对应的国家SKU
+      Object.keys(MARKETPLACES).forEach(marketplaceId => {
+        const key = `${sku.sku_id}_${marketplaceId}`;
+        // 如果有对应的国家SKU，使用它；否则使用默认的产品SKU值
+        enhancedSku[`amz_sku_${marketplaceId}`] = countrySkuMap.get(key) || sku.sku_code;
+      });
+      
+      return enhancedSku;
+    });
+    
+    //console.log('查询SQL:', query);
     //console.log('查询参数:', params);
-    //console.log('从数据库获取的SKU数据:', rows);
-    return rows;
+    //console.log('从数据库获取的增强SKU数据:', enhancedSkus);
+    return enhancedSkus;
   } catch (error) {
     console.error('从数据库获取SKU数据失败:', error);
     throw new Error('Failed to get SKU data from database');
@@ -443,7 +489,7 @@ router.get('/', async (req, res) => {
 // API: 获取数据库中的SKU数据及其在各市场的发布状态
 router.get('/api/database-skus', async (req, res) => {
   try {
-    // 获取数据库中的SKU数据
+    // 获取数据库中的SKU数据，包括各国特定的亚马逊SKU
     const skus = await getSkuDataFromDatabase();
     
     // 如果没有SKU数据，直接返回
@@ -456,15 +502,36 @@ router.get('/api/database-skus', async (req, res) => {
     
     // 并行处理每个市场的发布状态检查
     const marketplaceIds = Object.keys(MARKETPLACES);
-    const skuCodes = skus.map(sku => sku.sku_code);
     
     // 为每个市场创建一个Promise来检查所有SKU的发布状态
     const marketStatusPromises = marketplaceIds.map(async (marketplaceId) => {
       try {
-        const statusMap = await batchCheckListingStatuses(marketplaceId, skuCodes);
+        // 为当前市场获取所有SKU的对应国家SKU值
+        const marketSkuMap = {};
+        const marketSkus = [];
+        
+        skus.forEach(sku => {
+          // 使用该市场对应的国家特定SKU值
+          const marketSku = sku[`amz_sku_${marketplaceId}`] || sku.sku_code;
+          marketSkuMap[marketSku] = sku.sku_code; // 存储原始SKU编码映射
+          marketSkus.push(marketSku);
+        });
+        
+        // 批量检查当前市场的所有SKU发布状态
+        const statusMap = await batchCheckListingStatuses(marketplaceId, marketSkus);
+        
+        // 转换回原始SKU编码作为键
+        const transformedStatusMap = {};
+        for (const [marketSku, status] of Object.entries(statusMap)) {
+          const originalSku = marketSkuMap[marketSku];
+          if (originalSku) {
+            transformedStatusMap[originalSku] = status;
+          }
+        }
+        
         return {
           marketplaceId,
-          statusMap
+          statusMap: transformedStatusMap
         };
       } catch (error) {
         console.error(`获取市场${marketplaceId}的发布状态失败:`, error);
@@ -577,9 +644,18 @@ router.put('/api/publish', async (req, res) => {
         message: `SKU ${skuCode} 不存在或未启用`
       });
     }
+    
+    // 使用该市场对应的国家特定SKU值进行发布
+    const amzSku = skuData[`amz_sku_${marketplaceId}`] || skuData.sku_code;
+    
+    // 创建一个新的skuData对象，使用国家特定的SKU
+    const publishData = { ...skuData, sku_code: amzSku };
+    
     console.log('获取到的产品SKU基础数据:', skuData);
+    console.log(`使用${marketplaceId}市场的特定SKU: ${amzSku}进行发布`);
+    
     // 发布产品
-    const result = await publishProductUsingListingsAPI(marketplaceId, skuData);
+    const result = await publishProductUsingListingsAPI(marketplaceId, publishData);
     
     res.json({
       success: true,
@@ -649,10 +725,23 @@ router.get('/api/price', async (req, res) => {
       });
     }
     
-    // 使用Listings Items API获取价格信息，避免额外调用products/pricing/v0/price接口
-    const statusResult = await checkProductListingStatus(marketplaceId, skuCode);
+    // 获取SKU数据以获取国家特定SKU
+    const skuData = (await getSkuDataFromDatabase(skuCode))[0];
+    if (!skuData) {
+      return res.status(404).json({
+        success: false,
+        message: `SKU ${skuCode} 不存在或未启用`
+      });
+    }
     
-    // 构建与原getProductPriceInMarketplace相同格式的返回数据
+    // 使用该市场对应的国家特定SKU值
+    const amzSku = skuData[`amz_sku_${marketplaceId}`] || skuCode;
+    console.log(`使用${marketplaceId}市场的特定SKU: ${amzSku}获取价格`);
+    
+    // 使用Listings Items API获取价格信息
+    const statusResult = await checkProductListingStatus(marketplaceId, amzSku);
+    
+    // 构建返回数据
     let result;
     if (statusResult.isListed && statusResult.price) {
       result = {
@@ -662,7 +751,8 @@ router.get('/api/price', async (req, res) => {
           amount: statusResult.price.Amount,
           currencyCode: statusResult.price.CurrencyCode
         },
-        listingStatus: 'listed'
+        listingStatus: 'listed',
+        usedSku: amzSku
       };
     } else {
       result = {
@@ -672,7 +762,8 @@ router.get('/api/price', async (req, res) => {
           amount: 0,
           currencyCode: MARKETPLACES[marketplaceId].currency
         },
-        listingStatus: 'not_listed'
+        listingStatus: 'not_listed',
+        usedSku: amzSku
       };
     }
     
@@ -701,7 +792,72 @@ router.get('/api/prices/all', async (req, res) => {
       });
     }
     
-    const result = await getProductPricesInAllMarketplaces(skuCode);
+    // 获取SKU数据以获取各国特定SKU
+    const skuData = (await getSkuDataFromDatabase(skuCode))[0];
+    if (!skuData) {
+      return res.status(404).json({
+        success: false,
+        message: `SKU ${skuCode} 不存在或未启用`
+      });
+    }
+    
+    // 并行获取所有市场的价格
+    const marketplaceIds = Object.keys(MARKETPLACES);
+    const pricePromises = marketplaceIds.map(async (marketplaceId) => {
+      try {
+        // 使用该市场对应的国家特定SKU值
+        const amzSku = skuData[`amz_sku_${marketplaceId}`] || skuCode;
+        console.log(`使用${marketplaceId}市场的特定SKU: ${amzSku}获取价格`);
+        
+        // 使用Listings Items API获取价格信息
+        const statusResult = await checkProductListingStatus(marketplaceId, amzSku);
+        
+        // 构建返回数据
+        if (statusResult.isListed && statusResult.price) {
+          return {
+            marketplaceId,
+            status: 'success',
+            price: {
+              amount: statusResult.price.Amount,
+              currencyCode: statusResult.price.CurrencyCode
+            },
+            listingStatus: 'listed',
+            usedSku: amzSku
+          };
+        } else {
+          return {
+            marketplaceId,
+            status: 'not_listed',
+            price: {
+              amount: 0,
+              currencyCode: MARKETPLACES[marketplaceId].currency
+            },
+            listingStatus: 'not_listed',
+            usedSku: amzSku
+          };
+        }
+      } catch (error) {
+        console.warn(`获取市场${marketplaceId}的价格失败:`, error);
+        return {
+          marketplaceId,
+          status: 'error',
+          price: {
+            amount: 0,
+            currencyCode: MARKETPLACES[marketplaceId].currency
+          },
+          error: error.message,
+          usedSku: skuData[`amz_sku_${marketplaceId}`] || skuCode
+        };
+      }
+    });
+    
+    const prices = await Promise.all(pricePromises);
+    
+    // 整理结果
+    const result = {};
+    prices.forEach(priceData => {
+      result[priceData.marketplaceId] = priceData;
+    });
     
     res.json({
       success: true,
@@ -735,6 +891,19 @@ router.post('/api/price', async (req, res) => {
       });
     }
     
+    // 获取SKU数据以获取国家特定SKU
+    const skuData = (await getSkuDataFromDatabase(skuCode))[0];
+    if (!skuData) {
+      return res.status(404).json({
+        success: false,
+        message: `SKU ${skuCode} 不存在或未启用`
+      });
+    }
+    
+    // 使用该市场对应的国家特定SKU值
+    const amzSku = skuData[`amz_sku_${marketplaceId}`] || skuCode;
+    console.log(`使用${marketplaceId}市场的特定SKU: ${amzSku}设置价格`);
+    
     // 验证价格格式
     const priceValue = parseFloat(price);
     if (isNaN(priceValue) || priceValue <= 0) {
@@ -744,9 +913,12 @@ router.post('/api/price', async (req, res) => {
       });
     }
     
-    const result = await setProductPrice(marketplaceId, skuCode, priceValue);
+    const result = await setProductPrice(marketplaceId, amzSku, priceValue);
     
-    res.json(result);
+    res.json({
+      ...result,
+      usedSku: amzSku
+    });
   } catch (error) {
     console.error('设置产品价格API错误:', error);
     res.status(500).json({
