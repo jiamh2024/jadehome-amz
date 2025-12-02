@@ -217,21 +217,37 @@ async function getOrderItems(marketplaceId, orderId) {
 }
 
 /**
- * 获取当日时间范围
+ * 获取指定市场当地时间24小时内的时间范围
+ * @param {string} marketplaceId - 市场ID，默认为US
+ * @returns {Object} 包含createdAfter和createdBefore的时间范围对象
  */
-function getTodayTimeRange() {
-  const today = new Date();
-  today.setDate(today.getDate()-1);
-  const endDate = new Date(today);
-  endDate.setHours(23, 59, 59, 999);
-
-  today.setDate(today.getDate()-1);
-  const startDate = new Date(today);
-  startDate.setHours(0, 0, 0, 0);
+function getTodayTimeRange(marketplaceId = 'US') {
+  // 时区偏移配置（相对于UTC）
+  const timeZoneOffsets = {
+    US: -8, // 太平洋时间 UTC-8 (夏令时会自动调整)
+    CA: -8, // 加拿大太平洋时间 UTC-8
+    UK: -2,  // 英国时间 UTC+0 (冬令时)
+    AE: -4,  // 阿联酋时间 UTC+4
+    SA: -3   // 沙特阿拉伯时间 UTC+3
+  };
+  
+  // 获取当前中国时间（UTC+8）
+  const now = new Date();
+  const chinaTime = new Date(now.getTime() + 8 * 60 * 60 * 1000); // 转换为中国时间
+  console.log('中国时间:', chinaTime.toISOString());
+  
+  // 获取目标市场的时区偏移
+  const targetOffset = timeZoneOffsets[marketplaceId];
+  
+  // 计算当地时间（中国时间 + (目标时区偏移 - 8)小时）,另外增加10分钟订单系统延迟
+  const localEndDate = new Date(now.getTime() + targetOffset * 60 * 60 * 1000 - 2*60*1000);  
+  const localStartDate = new Date(localEndDate.getTime() - 24 * 60 * 60 * 1000);
+  console.log('UTC时间:', now.toISOString());
+  console.log('当地时间:', marketplaceId, localStartDate.toISOString(), localEndDate.toISOString());
   
   return {
-    createdAfter: startDate.toISOString(),
-    createdBefore: endDate.toISOString()
+    createdAfter: localStartDate.toISOString(),
+    createdBefore: localEndDate.toISOString()
   };
 }
 
@@ -241,7 +257,7 @@ function getTodayTimeRange() {
 router.get('/today', async (req, res) => {
   try {
     const { marketplaceId } = req.query;
-    const timeRange = getTodayTimeRange();
+    const timeRange = getTodayTimeRange(marketplaceId);
     
     // 如果指定了marketplaceId，则只查询该市场
     if (marketplaceId) {
