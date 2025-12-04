@@ -232,9 +232,9 @@ function getTodayTimeRange(marketplaceId = 'US') {
   const timeZoneOffsets = {
     US: -8, // 太平洋时间 UTC-8 (夏令时会自动调整)
     CA: -0, // 加拿大太平洋时间 UTC-8
-    UK: -2,  // 英国时间 UTC+0 (冬令时)
-    AE: -4,  // 阿联酋时间 UTC+4
-    SA: -3   // 沙特阿拉伯时间 UTC+3
+    UK: -0,  // 英国时间 UTC+0 (冬令时)
+    AE: -0,  // 阿联酋时间 UTC+4
+    SA: -0   // 沙特阿拉伯时间 UTC+3
   };
   
   // 获取当前中国时间（UTC+8）
