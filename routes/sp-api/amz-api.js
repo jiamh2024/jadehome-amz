@@ -46,7 +46,13 @@ async function getAccessToken(marketplaceId) {
 
     accessToken[marketplaceId].token = response.data.access_token;
     accessToken[marketplaceId].tokenExpires = Date.now() + (response.data.expires_in - 60) * 1000; // 提前1分钟过期
+
     console.log('获取Access Token成功:', marketplaceId , response.data.access_token);
+    console.log('过期时间:', accessToken[marketplaceId].tokenExpires);
+    console.log('refresh_token:', MARKETPLACES[marketplaceId].refresh_token);
+    console.log('client_id:', process.env.SP_API_CLIENT_ID);
+    console.log('client_secret:', process.env.SP_API_CLIENT_SECRET);
+
     return accessToken[marketplaceId].token;
   } catch (error) {
     console.error('获取Access Token失败:', error.response?.data || error.message);
@@ -156,7 +162,7 @@ async function getOrders(marketplaceId, params) {
       'x-amz-access-token': accessToken,
       'User-Agent': process.env.SP_API_USER_AGENT || 'My-App/1.0',
       'Content-Type': 'application/json',
-      version: 'beta'
+      'version': 'beta'
     }
   };
 
