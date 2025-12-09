@@ -1,0 +1,167 @@
+//- views/component-add.pug
+doctype html
+html(lang="zh-CN")
+  head
+    meta(charset="UTF-8")
+    meta(name="viewport" content="width=device-width, initial-scale=1.0")
+    title 添加零部件
+    link(href="https://fastly.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet")
+    style.
+      .form-container {
+        max-width: 800px;
+        margin: 2rem auto;
+        padding: 2rem;
+        box-shadow: 0 0 15px rgba(0,0,0,0.1);
+        border-radius: 8px;
+      }
+      .form-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.5rem;
+      }
+      .form-full {
+        grid-column: 1 / -1;
+      }
+      .btn-group {
+        display: flex;
+        gap: 1rem;
+        justify-content: flex-end;
+      }
+
+  body
+    .form-container
+      .d-flex.justify-content-between.align-items-center.mb-4
+        h3 添加零部件
+        a.btn.btn-outline-secondary(href="/component-ls") 返回列表
+
+      form#componentForm
+        .form-grid
+          //- SKU编码
+          .mb-3
+            label(for="sku_code" class="form-label") SKU编码 <span class="text-danger">*</span>
+            input#sku_code(type="text" class="form-control" required)
+            .form-text SKU编码必须唯一
+
+          //- 供应商
+          .mb-3
+            label(for="supplier" class="form-label") 供应商 <span class="text-danger">*</span>
+            input#supplier(type="text" class="form-control" required)
+
+          //- 供应商印象
+          .mb-3
+            label(for="supplier_impression" class="form-label") 供应商印象
+            textarea#supplier_impression(class="form-control" rows="2")
+            .form-text 对供应商的评价或印象
+
+          //- 采购价格
+          .mb-3
+            label(for="purchase_price" class="form-label") 采购价格 <span class="text-danger">*</span>
+            input#purchase_price(type="number" step="0.01" class="form-control" required min="0")
+
+          //- 货币单位
+          .mb-3
+            label(for="currency" class="form-label") 货币单位 <span class="text-danger">*</span>
+            select#currency(class="form-select" required)
+              option(value="USD") USD ($)
+              option(value="CNY" selected) CNY (¥)
+              option(value="EUR") EUR (€)
+              option(value="GBP") GBP (£)
+
+          //- 重量
+          .mb-3
+            label(for="weight" class="form-label") 重量 (kg) <span class="text-danger">*</span>
+            input#weight(type="number" step="0.01" class="form-control" required min="0")
+
+          //- 库存数量
+          .mb-3
+            label(for="inventory_quantity" class="form-label") 库存数量 <span class="text-danger">*</span>
+            input#inventory_quantity(type="number" class="form-control" required min="0" step="1")
+
+          //- 长度
+          .mb-3
+            label(for="length" class="form-label") 长度 (cm) <span class="text-danger">*</span>
+            input#length(type="number" step="0.01" class="form-control" required min="0")
+
+          //- 宽度
+          .mb-3
+            label(for="width" class="form-label") 宽度 (cm) <span class="text-danger">*</span>
+            input#width(type="number" step="0.01" class="form-control" required min="0")
+
+          //- 高度
+          .mb-3
+            label(for="height" class="form-label") 高度 (cm) <span class="text-danger">*</span>
+            input#height(type="number" step="0.01" class="form-control" required min="0")
+
+          //- 核心规格描述
+          .mb-3.form-full
+            label(for="core_specs" class="form-label") 核心规格描述 <span class="text-danger">*</span>
+            textarea#core_specs(class="form-control" rows="3" required)
+
+          //- 特点及用法
+          .mb-3.form-full
+            label(for="features_usage" class="form-label") 特点及用法
+            textarea#features_usage(class="form-control" rows="4")
+
+          //- 备注
+          .mb-3.form-full
+            label(for="remarks" class="form-label") 备注
+            textarea#remarks(class="form-control" rows="3")
+
+        .btn-group.mt-5
+          button(type="button" class="btn btn-secondary" onclick="window.location.href='/component-ls'").btn-secondary 取消
+          button(type="submit" class="btn btn-primary").btn-primary 保存
+
+    script(src="https://fastly.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js")
+    script(src="https://fastly.jsdelivr.net/npm/axios/dist/axios.min.js")
+    script.
+      document.getElementById('componentForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const formData = {
+          sku_code: document.getElementById('sku_code').value,
+          supplier: document.getElementById('supplier').value,
+          supplier_impression: document.getElementById('supplier_impression').value,
+          core_specs: document.getElementById('core_specs').value,
+          features_usage: document.getElementById('features_usage').value,
+          purchase_price: parseFloat(document.getElementById('purchase_price').value),
+          currency: document.getElementById('currency').value,
+          weight: parseFloat(document.getElementById('weight').value),
+          inventory_quantity: parseInt(document.getElementById('inventory_quantity').value),
+          length: parseFloat(document.getElementById('length').value),
+          width: parseFloat(document.getElementById('width').value),
+          height: parseFloat(document.getElementById('height').value),
+          remarks: document.getElementById('remarks').value
+        };
+
+        try {
+          const response = await axios.post('/api/component', formData);
+          showSuccess('零部件添加成功');
+          setTimeout(() => {
+            window.location.href = '/component-ls';
+          }, 1500);
+        } catch (error) {
+          showError(error.response?.data?.message || '添加失败');
+        }
+      });
+
+      function showSuccess(message) {
+        const alert = document.createElement('div');
+        alert.className = 'alert alert-success alert-dismissible fade show fixed-top end-0 m-3 z-50';
+        alert.innerHTML = `
+          ${message}
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        document.body.appendChild(alert);
+        setTimeout(() => alert.remove(), 5000);
+      }
+
+      function showError(message) {
+        const alert = document.createElement('div');
+        alert.className = 'alert alert-danger alert-dismissible fade show fixed-top end-0 m-3 z-50';
+        alert.innerHTML = `
+          ${message}
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        document.body.appendChild(alert);
+        setTimeout(() => alert.remove(), 5000);
+      }

@@ -26,6 +26,9 @@ var skuLabelRouter = require('./routes/sku-label');
 var amzRouter = require('./routes/amz-kv');
 var amzFileRouter = require('./routes/amz-file');
 var amzOrder = require('./routes/amz-order');
+var componentListRouter = require('./routes/component-ls');
+var componentAddRouter = require('./routes/component-add');
+var componentEditRouter = require('./routes/component-edit');
 
 var signIn = require('./routes/ads-api/signin');
 var campaigns = require('./routes/amz-campaigns');
@@ -41,6 +44,7 @@ var kvApiRouter = require('./routes/api/amz-pkv');
 var labelApiRouter = require('./routes/api/label');
 var skuLabelApiRouter = require('./routes/api/sku-label');
 var amzSkuCtyApiRouter = require('./routes/api/amz-sku-cty');
+var componentApiRouter = require('./routes/api/component');
 
 var amzApi = require('./routes/sp-api/amz-api');
 var amzApiRouter = amzApi.router;
@@ -70,6 +74,7 @@ app.use('/api/kv', kvApiRouter);
 app.use('/api/label', labelApiRouter);
 app.use('/api/sku-label', skuLabelApiRouter);
 app.use('/api/amz-sku-cty', amzSkuCtyApiRouter);
+app.use('/api/component', componentApiRouter);
 
 app.use('/api/amzapi', amzApiRouter);
 app.use('/api/adsapi', adsApiRouter);
@@ -94,6 +99,9 @@ app.use('/profit', profitRouter);
 app.use('/vcal', vcalRouter);
 app.use('/label', labelRouter);
 app.use('/sku-label', skuLabelRouter);
+app.use('/component-ls', componentListRouter);
+app.use('/component-add', componentAddRouter);
+app.use('/component-edit', componentEditRouter);
 
 app.use('/amzkv', amzRouter);
 app.use('/amzfile', amzFileRouter);
