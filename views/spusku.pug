@@ -1,13 +1,9 @@
-doctype html
-html(lang='en')
-  head
-    meta(charset='UTF-8')
-    meta(name='viewport', content='width=device-width, initial-scale=1.0')
+extends layout
+
+block append head
     title SPU-SKU Relation Management
-    script(src="https://fastly.jsdelivr.net/npm/axios/dist/axios.min.js")
     style.
-      body {
-        font-family: Arial, sans-serif;
+      .main-container {
         max-width: 1200px;
         margin: 0 auto;
         padding: 20px;
@@ -110,7 +106,8 @@ html(lang='en')
         font-style: italic;
       }
 
-  body
+block content
+  .main-container
     h1 SPU-SKU Relation Management
 
     #messageContainer

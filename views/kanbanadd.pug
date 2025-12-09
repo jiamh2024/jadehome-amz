@@ -1,12 +1,9 @@
 //- views/kanban.pug
-doctype html
-html(lang="zh-CN")
-  head
-    meta(charset="UTF-8")
-    meta(name="viewport" content="width=device-width, initial-scale=1.0")
-    title 看板信息录入
-    link(href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.1.3/css/bootstrap.min.css" rel="stylesheet")
-    style.
+extends layout
+
+block append head
+  title 看板信息录入
+  style.
       .form-container {
         max-width: 800px;
         margin: 2rem auto;
@@ -19,7 +16,7 @@ html(lang="zh-CN")
         margin-left: 4px;
       }
 
-  body
+block content
     .form-container
       h3.mb-4 看板信息录入
       form#kanbanForm

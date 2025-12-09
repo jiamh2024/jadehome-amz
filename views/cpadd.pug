@@ -1,12 +1,8 @@
 //- views/add-competitor.pug
-doctype html
-html(lang="zh-CN")
-  head
+extends layout
+
+block append head
     title 新增竞品信息
-    meta(charset="UTF-8")
-    meta(name="viewport" content="width=device-width, initial-scale=1.0")
-    link(href="https://fastly.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet")
-    link(href="https://fastly.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet")
     style.
       .form-container {
         max-width: 800px;
@@ -40,7 +36,7 @@ html(lang="zh-CN")
         display: none;
       }
 
-  body
+block content
     .container.form-container
       .form-header
         h1 
@@ -144,7 +140,6 @@ html(lang="zh-CN")
           button.btn-close(type="button" data-bs-dismiss="toast")
         .toast-body#toastMessage
 
-    script(src="https://fastly.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js")
     script.
       document.addEventListener('DOMContentLoaded', function() {
         const form = document.getElementById('competitorForm');

@@ -1,18 +1,10 @@
-doctype html
-html(lang='zh-CN')
-  head
-    meta(charset='UTF-8')
-    meta(name='viewport', content='width=device-width, initial-scale=1.0')
+extends layout
+
+block append head
     title 生成发货标签 - JadeHome
-    link(rel='stylesheet', href='/bootstrap.css')
-    link(rel='stylesheet', href='/style.css')
     script(src='https://fastly.jsdelivr.net/npm/axios/dist/axios.min.js')
     script(src='https://fastly.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js')
     style.
-      body {
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-        background-color: #f8f9fa;
-      }
       .label-generator-container {
         display: flex;
         min-height: calc(100vh - 100px);
@@ -192,9 +184,9 @@ html(lang='zh-CN')
       }
 
       @media print {
-        body * {
-          visibility: hidden;
-        }
+          body * {
+            visibility: hidden;
+          }
         .label-container, .label-container * {
           visibility: visible;
         }
@@ -228,13 +220,13 @@ html(lang='zh-CN')
           position: static;
         }
       }
-  body
-    .container.container-main
-      h1.mb-4
-        i.bi.bi-tag
-        span.ms-2 生成发货标签
-      
-      .label-generator-container
+block content
+  .container.container-main
+    h1.mb-4
+      i.bi.bi-tag
+      span.ms-2 生成发货标签
+    
+    .label-generator-container
         // 左侧选择区域
         .selection-panel
           div.section-title 选择参数

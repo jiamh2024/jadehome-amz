@@ -1,12 +1,10 @@
-doctype html
-html(lang='en')
-  head
-    meta(charset='UTF-8')
-    meta(name='viewport', content='width=device-width, initial-scale=1.0')
-    title Create Product SPU
-    script(src="https://fastly.jsdelivr.net/npm/axios/dist/axios.min.js")
-    style.
-      body {
+extends layout
+
+block append head
+  title Create Product SPU
+  script(src="https://fastly.jsdelivr.net/npm/axios/dist/axios.min.js")
+  style.
+    body {
         font-family: Arial, sans-serif;
         max-width: 800px;
         margin: 0 auto;

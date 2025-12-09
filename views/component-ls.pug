@@ -1,12 +1,8 @@
 //- views/component-ls.pug
-doctype html
-html(lang="zh-CN")
-  head
-    meta(charset="UTF-8")
-    meta(name="viewport" content="width=device-width, initial-scale=1.0")
+extends layout
+
+block append head
     title 零部件管理
-    link(href="https://fastly.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet")
-    link(rel="stylesheet" href="https://fastly.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css")
     style.
       .table-container {
         max-width: 1400px;
@@ -25,7 +21,7 @@ html(lang="zh-CN")
         text-overflow: ellipsis;
       }
 
-  body
+block content
     .table-container
       .d-flex.justify-content-between.mb-4.align-items-center
         h3 零部件管理
@@ -66,7 +62,6 @@ html(lang="zh-CN")
       nav(aria-label="Page navigation")
         ul.pagination.justify-content-center#pagination
 
-    script(src="https://fastly.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js")
     script(src="https://fastly.jsdelivr.net/npm/axios/dist/axios.min.js")
     script.
       let currentPage = 1;

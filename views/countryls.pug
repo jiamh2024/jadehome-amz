@@ -1,13 +1,9 @@
 //- views/list-countries.pug
-doctype html
-html(lang="en")
-  head
+extends layout
+
+block append head
     title Country Information
-    meta(charset="UTF-8")
-    meta(name="viewport" content="width=device-width, initial-scale=1.0")
-    link(href="https://fastly.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet")
     link(href="https://fastly.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" rel="stylesheet")
-    link(href="https://fastly.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet")
     style.
       .container-main {
         max-width: 1200px;
@@ -29,7 +25,7 @@ html(lang="en")
         height: 3rem;
       }
 
-  body
+block content
     .container.container-main
       .header-section
         h1 Country Information
@@ -68,7 +64,6 @@ html(lang="en")
               button#confirmDelete.btn.btn-danger(type="button") Delete
 
     script(src="https://code.jquery.com/jquery-3.7.0.min.js")
-    script(src="https://fastly.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js")
     script(src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js")
     script(src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js")
     script.

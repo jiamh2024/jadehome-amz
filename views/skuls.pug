@@ -1,226 +1,219 @@
-//- views/skuList.pug
-doctype html
-html(lang="en")
-  head
-    meta(charset="UTF-8")
-    meta(name="viewport" content="width=device-width, initial-scale=1.0")
-    title Product SKU Management
-    link(href="https://fastly.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet")
-    link(rel="stylesheet" href="https://fastly.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css")
-    style.
-      .table-container {
-        max-width: 1400px;
-        margin: 2rem auto;
-        padding: 2rem;
-        box-shadow: 0 0 15px rgba(0,0,0,0.1);
-        border-radius: 8px;
+extends layout
+
+block append head
+  title Product SKU Management
+  style.
+    .table-container {
+      max-width: 1400px;
+      margin: 2rem auto;
+      padding: 2rem;
+      box-shadow: 0 0 15px rgba(0,0,0,0.1);
+      border-radius: 8px;
+    }
+    .urgency-high { color: #dc3545; font-weight: bold; }
+    .urgency-medium { color: #ffc107; }
+    .urgency-low { color: #28a745; }
+    .search-box {
+      max-width: 400px;
+    }
+    .dimension-badge {
+      font-family: monospace;
+      background-color: #88898a;
+    }
+
+block content
+  .table-container
+    .d-flex.justify-content-between.mb-4.align-items-center
+      h3 Product SKU Management
+      a.btn.btn-primary(href="/skuadd") 
+        i.bi.bi-plus-circle
+        |  Add New SKU
+
+    .d-flex.justify-content-between.mb-4
+      .search-box
+        .input-group
+          input#searchInput.form-control(
+            type="text" 
+            placeholder="Search SKUs..."
+            onkeyup="searchSKUs()"
+          )
+          button.btn.btn-outline-secondary(type="button")
+            i.bi.bi-search
+
+      .d-flex.gap-2
+        select#pageLimit.form-select(onchange="loadData()" style="width: 100px")
+          option(value="10") 10 per page
+          option(value="20") 20 per page
+          option(value="50") 50 per page
+
+    table.table.table-hover.table-striped
+      thead
+        tr
+          th(scope="col") SKU Code
+          th(scope="col") Product Name
+          th(scope="col") Dimensions
+          th(scope="col") Weight
+          th(scope="col") Battery
+          th(scope="col") Cost
+          th(scope="col") Actions
+      tbody#dataBody
+        tr
+          td(colspan="7" class="text-center") Loading data...
+      
+    nav(aria-label="Page navigation")
+      ul.pagination.justify-content-center#pagination
+
+  script.
+    let currentPage = 1;
+    let currentSearch = '';
+    let pageSize = 10;
+
+    // Load initial data
+    document.addEventListener('DOMContentLoaded', () => {
+      loadData();
+    });
+
+    async function loadData(page = 1) {
+      currentPage = page;
+      pageSize = parseInt(document.getElementById('pageLimit').value);
+      
+      try {
+        const response = await axios.get('/api/sku', {
+          params: {
+            page: currentPage,
+            limit: pageSize,
+            search: currentSearch
+          }
+        });
+
+        renderTable(response.data.data.skus);
+        renderPagination(response.data.data.pagination);
+      } catch (error) {
+        showError('Failed to load data');
+        console.error(error);
       }
-      .urgency-high { color: #dc3545; font-weight: bold; }
-      .urgency-medium { color: #ffc107; }
-      .urgency-low { color: #28a745; }
-      .search-box {
-        max-width: 400px;
-      }
-      .dimension-badge {
-        font-family: monospace;
-        background-color: #88898a;
-      }
+    }
 
-  body
-    .table-container
-      .d-flex.justify-content-between.mb-4.align-items-center
-        h3 Product SKU Management
-        a.btn.btn-primary(href="/skuadd") 
-          i.bi.bi-plus-circle
-          |  Add New SKU
-
-      .d-flex.justify-content-between.mb-4
-        .search-box
-          .input-group
-            input#searchInput.form-control(
-              type="text" 
-              placeholder="Search SKUs..."
-              onkeyup="searchSKUs()"
-            )
-            button.btn.btn-outline-secondary(type="button")
-              i.bi.bi-search
-
-        .d-flex.gap-2
-          select#pageLimit.form-select(onchange="loadData()" style="width: 100px")
-            option(value="10") 10 per page
-            option(value="20") 20 per page
-            option(value="50") 50 per page
-
-      table.table.table-hover.table-striped
-        thead
-          tr
-            th(scope="col") SKU Code
-            th(scope="col") Product Name
-            th(scope="col") Dimensions
-            th(scope="col") Weight
-            th(scope="col") Battery
-            th(scope="col") Cost
-            th(scope="col") Actions
-        tbody#dataBody
-          tr
-            td(colspan="7" class="text-center") Loading data...
-        
-      nav(aria-label="Page navigation")
-        ul.pagination.justify-content-center#pagination
-
-    script(src="https://fastly.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js")
-    script(src="https://fastly.jsdelivr.net/npm/axios/dist/axios.min.js")
-    script.
-      let currentPage = 1;
-      let currentSearch = '';
-      let pageSize = 10;
-
-      // Load initial data
-      document.addEventListener('DOMContentLoaded', () => {
-        loadData();
-      });
-
-      async function loadData(page = 1) {
-        currentPage = page;
-        pageSize = parseInt(document.getElementById('pageLimit').value);
-        
-        try {
-          const response = await axios.get('/api/sku', {
-            params: {
-              page: currentPage,
-              limit: pageSize,
-              search: currentSearch
-            }
-          });
-
-          renderTable(response.data.data.skus);
-          renderPagination(response.data.data.pagination);
-        } catch (error) {
-          showError('Failed to load data');
-          console.error(error);
-        }
-      }
-
-      function renderTable(skus) {
-        const tbody = document.getElementById('dataBody');
-        
-        if (skus.length === 0) {
-          tbody.innerHTML = `
-            <tr>
-              <td colspan="7" class="text-center py-4 text-muted">
-                No SKUs found. Try changing your search criteria.
-              </td>
-            </tr>`;
-          return;
-        }
-
-        tbody.innerHTML = skus.map(sku => `
-          <tr data-id="${sku.sku_id}">
-            <td>
-              <strong>${sku.sku_code}</strong>
-              ${!sku.is_active ? '<span class="badge bg-secondary ms-2">Inactive</span>' : ''}
+    function renderTable(skus) {
+      const tbody = document.getElementById('dataBody');
+      
+      if (skus.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="7" class="text-center py-4 text-muted">
+              No SKUs found. Try changing your search criteria.
             </td>
-            <td>${sku.product_name}</td>
-            <td>
-              <span class="dimension-badge badge">
-                ${sku.length} × ${sku.width} × ${sku.height} cm
-              </span>
-              <small class="text-muted d-block mt-1">${(sku.length * sku.width * sku.height).toFixed(2)} cm³</small>
-            </td>
-            <td>${sku.weight} kg</td>
-            <td class="${getBatteryClass(sku)}">
-              ${sku.has_battery ? sku.battery_type : 'None'}
-            </td>
-            <td>
-              ${sku.currency} ${sku.purchase_cost}
-            </td>
-            <td>
-              <div class="d-flex gap-2">
-                <a href="/skuedit/${sku.sku_id}" class="btn btn-sm btn-outline-primary">
-                  <i class="bi bi-pencil-square"></i> Edit
-                </a>
-                <a href="/profit?product_id=${sku.sku_id}&product_name=${encodeURIComponent(sku.product_name || '')}&length=${sku.length}&width=${sku.width}&height=${sku.height}&weight=${sku.weight}&purchase_cost=${sku.purchase_cost}&currency=${sku.currency}" class="btn btn-sm btn-outline-info">
-                  <i class="bi bi-calculator"></i> Cost
-                </a>
-                <button class="btn btn-sm btn-outline-danger" onclick="deleteSKU(${sku.sku_id})">
-                  <i class="bi bi-trash"></i>
-                </button>
-              </div>
-            </td>
-          </tr>
-        `).join('');
+          </tr>`;
+        return;
       }
 
-      function renderPagination(pagination) {
-        const paginationEl = document.getElementById('pagination');
-        paginationEl.innerHTML = '';
+      tbody.innerHTML = skus.map(sku => `
+        <tr data-id="${sku.sku_id}">
+          <td>
+            <strong>${sku.sku_code}</strong>
+            ${!sku.is_active ? '<span class="badge bg-secondary ms-2">Inactive</span>' : ''}
+          </td>
+          <td>${sku.product_name}</td>
+          <td>
+            <span class="dimension-badge badge">
+              ${sku.length} × ${sku.width} × ${sku.height} cm
+            </span>
+            <small class="text-muted d-block mt-1">${(sku.length * sku.width * sku.height).toFixed(2)} cm³</small>
+          </td>
+          <td>${sku.weight} kg</td>
+          <td class="${getBatteryClass(sku)}">
+            ${sku.has_battery ? sku.battery_type : 'None'}
+          </td>
+          <td>
+            ${sku.currency} ${sku.purchase_cost}
+          </td>
+          <td>
+            <div class="d-flex gap-2">
+              <a href="/skuedit/${sku.sku_id}" class="btn btn-sm btn-outline-primary">
+                <i class="bi bi-pencil-square"></i> Edit
+              </a>
+              <a href="/profit?product_id=${sku.sku_id}&product_name=${encodeURIComponent(sku.product_name || '')}&length=${sku.length}&width=${sku.width}&height=${sku.height}&weight=${sku.weight}&purchase_cost=${sku.purchase_cost}&currency=${sku.currency}" class="btn btn-sm btn-outline-info">
+                <i class="bi bi-calculator"></i> Cost
+              </a>
+              <button class="btn btn-sm btn-outline-danger" onclick="deleteSKU(${sku.sku_id})">
+                <i class="bi bi-trash"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+      `).join('');
+    }
 
-        // Previous button
+    function renderPagination(pagination) {
+      const paginationEl = document.getElementById('pagination');
+      paginationEl.innerHTML = '';
+
+      // Previous button
+      paginationEl.innerHTML += `
+        <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+          <a class="page-link" href="#" onclick="loadData(${currentPage - 1})">
+            <i class="bi bi-chevron-left"></i>
+          </a>
+        </li>`;
+
+      // Page numbers
+      for (let i = 1; i <= pagination.totalPages; i++) {
         paginationEl.innerHTML += `
-          <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
-            <a class="page-link" href="#" onclick="loadData(${currentPage - 1})">
-              <i class="bi bi-chevron-left"></i>
-            </a>
-          </li>`;
-
-        // Page numbers
-        for (let i = 1; i <= pagination.totalPages; i++) {
-          paginationEl.innerHTML += `
-            <li class="page-item ${i === currentPage ? 'active' : ''}">
-              <a class="page-link" href="#" onclick="loadData(${i})">${i}</a>
-            </li>`;
-        }
-
-        // Next button
-        paginationEl.innerHTML += `
-          <li class="page-item ${currentPage >= pagination.totalPages ? 'disabled' : ''}">
-            <a class="page-link" href="#" onclick="loadData(${currentPage + 1})">
-              <i class="bi bi-chevron-right"></i>
-            </a>
+          <li class="page-item ${i === currentPage ? 'active' : ''}">
+            <a class="page-link" href="#" onclick="loadData(${i})">${i}</a>
           </li>`;
       }
 
-      function searchSKUs() {
-        currentSearch = document.getElementById('searchInput').value;
-        loadData(1); // Reset to first page when searching
-      }
+      // Next button
+      paginationEl.innerHTML += `
+        <li class="page-item ${currentPage >= pagination.totalPages ? 'disabled' : ''}">
+          <a class="page-link" href="#" onclick="loadData(${currentPage + 1})">
+            <i class="bi bi-chevron-right"></i>
+          </a>
+        </li>`;
+    }
 
-      async function deleteSKU(skuId) {
-        if (!confirm('Are you sure you want to delete this SKU?')) return;
+    function searchSKUs() {
+      currentSearch = document.getElementById('searchInput').value;
+      loadData(1); // Reset to first page when searching
+    }
 
-        try {
-          await axios.delete(`/api/sku/${skuId}`);
-          showSuccess('SKU deleted successfully');
-          loadData(currentPage);
-        } catch (error) {
-          showError(error.response?.data?.message || 'Delete failed');
-        }
-      }
+    async function deleteSKU(skuId) {
+      if (!confirm('Are you sure you want to delete this SKU?')) return;
 
-      function getBatteryClass(sku) {
-        if (!sku.has_battery) return '';
-        return sku.battery_type === 'Lithium' ? 'urgency-high' : 
-               sku.battery_type === 'Lead-acid' ? 'urgency-medium' : '';
+      try {
+        await axios.delete(`/api/sku/${skuId}`);
+        showSuccess('SKU deleted successfully');
+        loadData(currentPage);
+      } catch (error) {
+        showError(error.response?.data?.message || 'Delete failed');
       }
+    }
 
-      function showSuccess(message) {
-        const alert = document.createElement('div');
-        alert.className = 'alert alert-success alert-dismissible fade show position-fixed top-0 end-0 m-3';
-        alert.innerHTML = `
-          ${message}
-          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        `;
-        document.body.appendChild(alert);
-        setTimeout(() => alert.remove(), 5000);
-      }
+    function getBatteryClass(sku) {
+      if (!sku.has_battery) return '';
+      return sku.battery_type === 'Lithium' ? 'urgency-high' : 
+             sku.battery_type === 'Lead-acid' ? 'urgency-medium' : '';
+    }
 
-      function showError(message) {
-        const alert = document.createElement('div');
-        alert.className = 'alert alert-danger alert-dismissible fade show position-fixed top-0 end-0 m-3';
-        alert.innerHTML = `
-          ${message}
-          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        `;
-        document.body.appendChild(alert);
-        setTimeout(() => alert.remove(), 5000);
-      }
+    function showSuccess(message) {
+      const alert = document.createElement('div');
+      alert.className = 'alert alert-success alert-dismissible fade show position-fixed top-0 end-0 m-3';
+      alert.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      `;
+      document.body.appendChild(alert);
+      setTimeout(() => alert.remove(), 5000);
+    }
+
+    function showError(message) {
+      const alert = document.createElement('div');
+      alert.className = 'alert alert-danger alert-dismissible fade show position-fixed top-0 end-0 m-3';
+      alert.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      `;
+      document.body.appendChild(alert);
+      setTimeout(() => alert.remove(), 5000);
+    }
