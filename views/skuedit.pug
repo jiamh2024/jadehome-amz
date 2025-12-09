@@ -165,379 +165,380 @@ block content
             |  Back to List
 
 
-    script(src="https://fastly.jsdelivr.net/npm/axios/dist/axios.min.js")
+  script(src="https://fastly.jsdelivr.net/npm/axios/dist/axios.min.js")
     
-    // Country SKU Management Modal
-    #countrySkuModal.modal.fade(tabindex="-1")
-      .modal-dialog.modal-lg
-        .modal-content
-          .modal-header
-            h5.modal-title Country SKU Management
-            button.btn-close(type="button", data-bs-dismiss="modal")
-          .modal-body
-            .mb-4
-              h6 Available Countries
-              .row
-                .col-md-8
-                  select#countrySelect.form-select
-                    option(value="") Select a country
-                .col-md-3
-                  input#countrySkuInput.form-control(placeholder="Country SKU")
-                .col-md-1
-                  button#addCountrySku.btn.btn-primary(type="button")
-                    i.bi.bi-plus
-            
-            .mt-4
-              h6 Country SKUs for this Product
-              div#countrySkuLoader.text-center.p-4
-                .spinner-border.text-primary(role="status")
-                  span.visually-hidden Loading...
-              table#countrySkuTable.table.table-striped
-                thead
-                  tr
-                    th Country Name
-                    th Country Code
-                    th Country SKU
-                    th Actions
-                tbody
-                  tr#noCountrySkusRow
-                    td(colspan="4") class="text-center text-muted" No country SKUs added yet
-          .modal-footer
-            button.btn.btn-secondary(type="button", data-bs-dismiss="modal") Close
-    
-    script.
-      // Load existing SKU data
-      document.addEventListener('DOMContentLoaded', async () => {
-        try {
-          const skuId = #{id};
-          const response = await axios.get(`/api/sku/${skuId}`);
-          const sku = response.data.data;
+  // Country SKU Management Modal
+  #countrySkuModal.modal.fade(tabindex="-1")
+    .modal-dialog.modal-lg
+      .modal-content
+        .modal-header
+          h5.modal-title Country SKU Management
+          button.btn-close(type="button", data-bs-dismiss="modal")
+        .modal-body
+          .mb-4
+            h6 Available Countries
+            .row
+              .col-md-8
+                select#countrySelect.form-select
+                  option(value="") Select a country
+              .col-md-3
+                input#countrySkuInput.form-control(placeholder="Country SKU")
+              .col-md-1
+                button#addCountrySku.btn.btn-primary(type="button")
+                  i.bi.bi-plus
           
-          // Populate form fields
-          document.getElementById('sku_code').value = sku.sku_code;
-          document.getElementById('product_name').value = sku.product_name;
-          document.getElementById('length').value = sku.length;
-          document.getElementById('width').value = sku.width;
-          document.getElementById('height').value = sku.height;
-          document.getElementById('weight').value = sku.weight;
-          document.getElementById('purchase_cost').value = sku.purchase_cost;
-          document.getElementById('currency').value = sku.currency;
-          document.getElementById('asin').value = sku.asin || '';
-          
-          // Handle battery fields
-          const hasBattery = sku.has_battery === 1 || sku.has_battery === true;
-          document.getElementById('has_battery').checked = hasBattery;
-          document.getElementById('batteryTypeContainer').style.display = hasBattery ? 'block' : 'none';
-          document.getElementById('battery_type').value = sku.battery_type || 'None';
-          
-          // Hide loading overlay
-          document.getElementById('loadingOverlay').style.display = 'none';
-        } catch (error) {
-          console.error('Error loading SKU:', error);
-          showAlert('danger', 'Failed to load SKU data');
-          document.getElementById('loadingOverlay').style.display = 'none';
-        }
-      });
+          .mt-4
+            h6 Country SKUs for this Product
+            div#countrySkuLoader.text-center.p-4
+              .spinner-border.text-primary(role="status")
+                span.visually-hidden Loading...
+            table#countrySkuTable.table.table-striped
+              thead
+                tr
+                  th Country Name
+                  th Country Code
+                  th Country SKU
+                  th Actions
+              tbody
+                tr#noCountrySkusRow
+                  td(colspan="4") class="text-center text-muted" No country SKUs added yet
+        .modal-footer
+          button.btn.btn-secondary(type="button", data-bs-dismiss="modal") Close
+          button#saveCountrySkus.btn.btn-primary(type="button") Save Changes
 
-      // Toggle battery type visibility
-      document.getElementById('has_battery').addEventListener('change', function() {
-        const container = document.getElementById('batteryTypeContainer');
-        container.style.display = this.checked ? 'block' : 'none';
-        if (!this.checked) {
-          document.getElementById('battery_type').value = 'None';
-        }
-      });
-
-      // Form submission
-      document.getElementById('skuForm').addEventListener('submit', async function(e) {
-        e.preventDefault();
-        const form = e.target;
+  script.
+    // Load existing SKU data
+    document.addEventListener('DOMContentLoaded', async () => {
+      try {
+        const skuId = #{id};
+        const response = await axios.get(`/api/sku/${skuId}`);
+        const sku = response.data.data;
         
-        // Front-end validation
-        if (!form.checkValidity()) {
-          form.classList.add('was-validated');
-          return;
-        }
-
-        const formData = {
-          sku_code: form.sku_code.value,
-          product_name: form.product_name.value,
-          length: parseFloat(form.length.value),
-          width: parseFloat(form.width.value),
-          height: parseFloat(form.height.value),
-          weight: parseFloat(form.weight.value),
-          has_battery: form.has_battery.checked,
-          battery_type: form.battery_type.value,
-          purchase_cost: parseFloat(form.purchase_cost.value),
-          currency: form.currency.value,
-          asin: form.asin.value
-        };
-
-        try {
-          const response = await axios.put('/api/sku/#{id}', formData);
-          
-          showAlert('success', `
-            <strong>Success!</strong> SKU updated successfully.
-            <a href="/api/sku/${form.sku_id.value}" class="alert-link">View details</a>
-          `);
-          
-          // Scroll to top to see the message
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-        } catch (error) {
-          let errorMsg = 'Failed to update SKU';
-          if (error.response) {
-            if (error.response.data.errors) {
-              errorMsg = error.response.data.errors.map(e => e.msg).join('<br>');
-            } else if (error.response.data.message) {
-              errorMsg = error.response.data.message;
-            }
-          }
-          
-          showAlert('danger', `<strong>Error!</strong> ${errorMsg}`);
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
-      });
-
-      function showAlert(type, message) {
-        const alertContainer = document.getElementById('alertContainer');
-        const alert = document.createElement('div');
-        alert.className = `alert alert-${type} alert-dismissible fade show`;
-        alert.innerHTML = `
-          ${message}
-          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        `;
-        alertContainer.prepend(alert);
+        // Populate form fields
+        document.getElementById('sku_code').value = sku.sku_code;
+        document.getElementById('product_name').value = sku.product_name;
+        document.getElementById('length').value = sku.length;
+        document.getElementById('width').value = sku.width;
+        document.getElementById('height').value = sku.height;
+        document.getElementById('weight').value = sku.weight;
+        document.getElementById('purchase_cost').value = sku.purchase_cost;
+        document.getElementById('currency').value = sku.currency;
+        document.getElementById('asin').value = sku.asin || '';
         
-        // Auto-dismiss after 5 seconds
-        setTimeout(() => {
-          alert.classList.remove('show');
-          setTimeout(() => alert.remove(), 150);
-        }, 5000);
+        // Handle battery fields
+        const hasBattery = sku.has_battery === 1 || sku.has_battery === true;
+        document.getElementById('has_battery').checked = hasBattery;
+        document.getElementById('batteryTypeContainer').style.display = hasBattery ? 'block' : 'none';
+        document.getElementById('battery_type').value = sku.battery_type || 'None';
+        
+        // Hide loading overlay
+        document.getElementById('loadingOverlay').style.display = 'none';
+      } catch (error) {
+        console.error('Error loading SKU:', error);
+        showAlert('danger', 'Failed to load SKU data');
+        document.getElementById('loadingOverlay').style.display = 'none';
       }
+    });
+
+    // Toggle battery type visibility
+    document.getElementById('has_battery').addEventListener('change', function() {
+      const container = document.getElementById('batteryTypeContainer');
+      container.style.display = this.checked ? 'block' : 'none';
+      if (!this.checked) {
+        document.getElementById('battery_type').value = 'None';
+      }
+    });
+
+    // Form submission
+    document.getElementById('skuForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const form = e.target;
       
-      // Country SKU Management Functions
-      let countrySkuModal = null;
-      let currentEditingSkuId = null;
-      
-      // Initialize country SKU modal
-      function initCountrySkuModal() {
-        countrySkuModal = new bootstrap.Modal(document.getElementById('countrySkuModal'));
+      // Front-end validation
+      if (!form.checkValidity()) {
+        form.classList.add('was-validated');
+        return;
+      }
+
+      const formData = {
+        sku_code: form.sku_code.value,
+        product_name: form.product_name.value,
+        length: parseFloat(form.length.value),
+        width: parseFloat(form.width.value),
+        height: parseFloat(form.height.value),
+        weight: parseFloat(form.weight.value),
+        has_battery: form.has_battery.checked,
+        battery_type: form.battery_type.value,
+        purchase_cost: parseFloat(form.purchase_cost.value),
+        currency: form.currency.value,
+        asin: form.asin.value
+      };
+
+      try {
+        const response = await axios.put('/api/sku/#{id}', formData);
         
-        // Open modal event
-        document.getElementById('manageCountrySkus').addEventListener('click', async () => {
-          try {
-            // Load countries for dropdown
-            await loadCountries();
-            // Load existing country SKUs
-            await loadCountrySkus();
-            // Show modal
-            countrySkuModal.show();
-          } catch (error) {
-            console.error('Error initializing modal:', error);
-            showAlert('danger', 'Failed to load country SKU management data');
+        showAlert('success', `
+          <strong>Success!</strong> SKU updated successfully.
+          <a href="/api/sku/${form.sku_id.value}" class="alert-link">View details</a>
+        `);
+        
+        // Scroll to top to see the message
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } catch (error) {
+        let errorMsg = 'Failed to update SKU';
+        if (error.response) {
+          if (error.response.data.errors) {
+            errorMsg = error.response.data.errors.map(e => e.msg).join('<br>');
+          } else if (error.response.data.message) {
+            errorMsg = error.response.data.message;
+          }
+        }
+        
+        showAlert('danger', `<strong>Error!</strong> ${errorMsg}`);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    });
+
+    function showAlert(type, message) {
+      const alertContainer = document.getElementById('alertContainer');
+      const alert = document.createElement('div');
+      alert.className = `alert alert-${type} alert-dismissible fade show`;
+      alert.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      `;
+      alertContainer.prepend(alert);
+      
+      // Auto-dismiss after 5 seconds
+      setTimeout(() => {
+        alert.classList.remove('show');
+        setTimeout(() => alert.remove(), 150);
+      }, 5000);
+    }
+    
+    // Country SKU Management Functions
+    let countrySkuModal = null;
+    let currentEditingSkuId = null;
+    
+    // Initialize country SKU modal
+    function initCountrySkuModal() {
+      countrySkuModal = new bootstrap.Modal(document.getElementById('countrySkuModal'));
+      
+      // Open modal event
+      document.getElementById('manageCountrySkus').addEventListener('click', async () => {
+        try {
+          // Load countries for dropdown
+          await loadCountries();
+          // Load existing country SKUs
+          await loadCountrySkus();
+          // Show modal
+          countrySkuModal.show();
+        } catch (error) {
+          console.error('Error initializing modal:', error);
+          showAlert('danger', 'Failed to load country SKU management data');
+        }
+      });
+      
+      // Add country SKU button
+      document.getElementById('addCountrySku').addEventListener('click', addCountrySku);
+    }
+    
+    // Load countries into dropdown
+    async function loadCountries() {
+      try {
+        const response = await axios.get('/api/amz-sku-cty/countries/all');
+        const countries = response.data.data;
+        const select = document.getElementById('countrySelect');
+        
+        // Clear existing options except placeholder
+        select.innerHTML = '<option value="">Select a country</option>';
+        
+        // Add countries to dropdown
+        countries.forEach(country => {
+          const option = document.createElement('option');
+          option.value = country.id;
+          option.textContent = `${country.country_name} (${country.country_code})`;
+          select.appendChild(option);
+        });
+      } catch (error) {
+        console.error('Error loading countries:', error);
+        throw error;
+      }
+    }
+    
+    // Load country SKUs for current product
+    async function loadCountrySkus() {
+      const skuId = #{id};
+      const loader = document.getElementById('countrySkuLoader');
+      const tableBody = document.querySelector('#countrySkuTable tbody');
+      const noDataRow = document.getElementById('noCountrySkusRow');
+      
+      try {
+        loader.style.display = 'block';
+        const response = await axios.get(`/api/amz-sku-cty/${skuId}`);
+        const countrySkus = response.data.data;
+        
+        // Clear existing rows except no data row
+        Array.from(tableBody.children).forEach(child => {
+          if (child.id !== 'noCountrySkusRow') {
+            tableBody.removeChild(child);
           }
         });
         
-        // Add country SKU button
-        document.getElementById('addCountrySku').addEventListener('click', addCountrySku);
+        // Show/hide no data row
+        noDataRow.style.display = countrySkus.length === 0 ? 'table-row' : 'none';
+        
+        // Add country SKU rows
+        countrySkus.forEach(sku => {
+          const row = document.createElement('tr');
+          row.dataset.id = sku.id;
+          row.innerHTML = `
+            <td>${sku.country_name}</td>
+            <td>${sku.country_code}</td>
+            <td>
+              <div class="input-group" style="display: none;">
+                <input type="text" class="form-control edit-sku-input" value="${sku.country_sku}">
+                <button class="btn btn-success btn-sm save-sku-btn">
+                  <i class="bi bi-check"></i>
+                </button>
+                <button class="btn btn-secondary btn-sm cancel-sku-btn">
+                  <i class="bi bi-x"></i>
+                </button>
+              </div>
+              <span class="sku-display">${sku.country_sku}</span>
+            </td>
+            <td>
+              <div class="btn-group btn-group-sm">
+                <button class="btn btn-outline-primary edit-btn">
+                  <i class="bi bi-pencil"></i>
+                </button>
+                <button class="btn btn-outline-danger delete-btn">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </div>
+            </td>
+          `;
+          tableBody.appendChild(row);
+          
+          // Add event listeners
+          row.querySelector('.edit-btn').addEventListener('click', () => enableEditMode(row));
+          row.querySelector('.delete-btn').addEventListener('click', () => deleteCountrySku(sku.id, row));
+          row.querySelector('.save-sku-btn').addEventListener('click', () => saveCountrySku(sku.id, row));
+          row.querySelector('.cancel-sku-btn').addEventListener('click', () => disableEditMode(row));
+        });
+      } catch (error) {
+        console.error('Error loading country SKUs:', error);
+        showAlert('danger', 'Failed to load country SKUs');
+      } finally {
+        loader.style.display = 'none';
+      }
+    }
+    
+    // Add new country SKU
+    async function addCountrySku() {
+      const countryId = document.getElementById('countrySelect').value;
+      const countrySku = document.getElementById('countrySkuInput').value.trim();
+      const skuId = #{id};
+      
+      if (!countryId || !countrySku) {
+        showAlert('warning', 'Please select a country and enter a country SKU');
+        return;
       }
       
-      // Load countries into dropdown
-      async function loadCountries() {
-        try {
-          const response = await axios.get('/api/amz-sku-cty/countries/all');
-          const countries = response.data.data;
-          const select = document.getElementById('countrySelect');
-          
-          // Clear existing options except placeholder
-          select.innerHTML = '<option value="">Select a country</option>';
-          
-          // Add countries to dropdown
-          countries.forEach(country => {
-            const option = document.createElement('option');
-            option.value = country.id;
-            option.textContent = `${country.country_name} (${country.country_code})`;
-            select.appendChild(option);
-          });
-        } catch (error) {
-          console.error('Error loading countries:', error);
-          throw error;
-        }
+      try {
+        const response = await axios.post('/api/amz-sku-cty', {
+          sku_id: skuId,
+          country_id: countryId,
+          country_sku: countrySku
+        });
+        
+        // Reset form
+        document.getElementById('countrySelect').value = '';
+        document.getElementById('countrySkuInput').value = '';
+        
+        // Reload country SKUs
+        await loadCountrySkus();
+        showAlert('success', 'Country SKU added successfully');
+      } catch (error) {
+        console.error('Error adding country SKU:', error);
+        const message = error.response?.data?.message || 'Failed to add country SKU';
+        showAlert('danger', message);
+      }
+    }
+    
+    // Enable edit mode for a row
+    function enableEditMode(row) {
+      const skuDisplay = row.querySelector('.sku-display');
+      const editGroup = row.querySelector('.input-group');
+      
+      skuDisplay.style.display = 'none';
+      editGroup.style.display = 'flex';
+      
+      // Focus the input
+      editGroup.querySelector('input').focus();
+    }
+    
+    // Disable edit mode for a row
+    function disableEditMode(row) {
+      const skuDisplay = row.querySelector('.sku-display');
+      const editGroup = row.querySelector('.input-group');
+      
+      skuDisplay.style.display = 'inline';
+      editGroup.style.display = 'none';
+    }
+    
+    // Save edited country SKU
+    async function saveCountrySku(id, row) {
+      const newSku = row.querySelector('.edit-sku-input').value.trim();
+      
+      if (!newSku) {
+        showAlert('warning', 'Country SKU cannot be empty');
+        return;
       }
       
-      // Load country SKUs for current product
-      async function loadCountrySkus() {
-        const skuId = #{id};
-        const loader = document.getElementById('countrySkuLoader');
+      try {
+        const response = await axios.put(`/api/amz-sku-cty/${id}`, {
+          country_sku: newSku
+        });
+        
+        // Update display
+        row.querySelector('.sku-display').textContent = newSku;
+        disableEditMode(row);
+        
+        showAlert('success', 'Country SKU updated successfully');
+      } catch (error) {
+        console.error('Error updating country SKU:', error);
+        showAlert('danger', 'Failed to update country SKU');
+      }
+    }
+    
+    // Delete country SKU
+    async function deleteCountrySku(id, row) {
+      if (!confirm('Are you sure you want to delete this country SKU?')) {
+        return;
+      }
+      
+      try {
+        await axios.delete(`/api/amz-sku-cty/${id}`);
+        row.remove();
+        
+        // Check if we need to show the no data row
         const tableBody = document.querySelector('#countrySkuTable tbody');
         const noDataRow = document.getElementById('noCountrySkusRow');
+        const hasRows = Array.from(tableBody.children).some(child => 
+          child.id !== 'noCountrySkusRow'
+        );
         
-        try {
-          loader.style.display = 'block';
-          const response = await axios.get(`/api/amz-sku-cty/${skuId}`);
-          const countrySkus = response.data.data;
-          
-          // Clear existing rows except no data row
-          Array.from(tableBody.children).forEach(child => {
-            if (child.id !== 'noCountrySkusRow') {
-              tableBody.removeChild(child);
-            }
-          });
-          
-          // Show/hide no data row
-          noDataRow.style.display = countrySkus.length === 0 ? 'table-row' : 'none';
-          
-          // Add country SKU rows
-          countrySkus.forEach(sku => {
-            const row = document.createElement('tr');
-            row.dataset.id = sku.id;
-            row.innerHTML = `
-              <td>${sku.country_name}</td>
-              <td>${sku.country_code}</td>
-              <td>
-                <div class="input-group" style="display: none;">
-                  <input type="text" class="form-control edit-sku-input" value="${sku.country_sku}">
-                  <button class="btn btn-success btn-sm save-sku-btn">
-                    <i class="bi bi-check"></i>
-                  </button>
-                  <button class="btn btn-secondary btn-sm cancel-sku-btn">
-                    <i class="bi bi-x"></i>
-                  </button>
-                </div>
-                <span class="sku-display">${sku.country_sku}</span>
-              </td>
-              <td>
-                <div class="btn-group btn-group-sm">
-                  <button class="btn btn-outline-primary edit-btn">
-                    <i class="bi bi-pencil"></i>
-                  </button>
-                  <button class="btn btn-outline-danger delete-btn">
-                    <i class="bi bi-trash"></i>
-                  </button>
-                </div>
-              </td>
-            `;
-            tableBody.appendChild(row);
-            
-            // Add event listeners
-            row.querySelector('.edit-btn').addEventListener('click', () => enableEditMode(row));
-            row.querySelector('.delete-btn').addEventListener('click', () => deleteCountrySku(sku.id, row));
-            row.querySelector('.save-sku-btn').addEventListener('click', () => saveCountrySku(sku.id, row));
-            row.querySelector('.cancel-sku-btn').addEventListener('click', () => disableEditMode(row));
-          });
-        } catch (error) {
-          console.error('Error loading country SKUs:', error);
-          showAlert('danger', 'Failed to load country SKUs');
-        } finally {
-          loader.style.display = 'none';
-        }
+        noDataRow.style.display = hasRows ? 'none' : 'table-row';
+        
+        showAlert('success', 'Country SKU deleted successfully');
+      } catch (error) {
+        console.error('Error deleting country SKU:', error);
+        showAlert('danger', 'Failed to delete country SKU');
       }
-      
-      // Add new country SKU
-      async function addCountrySku() {
-        const countryId = document.getElementById('countrySelect').value;
-        const countrySku = document.getElementById('countrySkuInput').value.trim();
-        const skuId = #{id};
-        
-        if (!countryId || !countrySku) {
-          showAlert('warning', 'Please select a country and enter a country SKU');
-          return;
-        }
-        
-        try {
-          const response = await axios.post('/api/amz-sku-cty', {
-            sku_id: skuId,
-            country_id: countryId,
-            country_sku: countrySku
-          });
-          
-          // Reset form
-          document.getElementById('countrySelect').value = '';
-          document.getElementById('countrySkuInput').value = '';
-          
-          // Reload country SKUs
-          await loadCountrySkus();
-          showAlert('success', 'Country SKU added successfully');
-        } catch (error) {
-          console.error('Error adding country SKU:', error);
-          const message = error.response?.data?.message || 'Failed to add country SKU';
-          showAlert('danger', message);
-        }
-      }
-      
-      // Enable edit mode for a row
-      function enableEditMode(row) {
-        const skuDisplay = row.querySelector('.sku-display');
-        const editGroup = row.querySelector('.input-group');
-        
-        skuDisplay.style.display = 'none';
-        editGroup.style.display = 'flex';
-        
-        // Focus the input
-        editGroup.querySelector('input').focus();
-      }
-      
-      // Disable edit mode for a row
-      function disableEditMode(row) {
-        const skuDisplay = row.querySelector('.sku-display');
-        const editGroup = row.querySelector('.input-group');
-        
-        skuDisplay.style.display = 'inline';
-        editGroup.style.display = 'none';
-      }
-      
-      // Save edited country SKU
-      async function saveCountrySku(id, row) {
-        const newSku = row.querySelector('.edit-sku-input').value.trim();
-        
-        if (!newSku) {
-          showAlert('warning', 'Country SKU cannot be empty');
-          return;
-        }
-        
-        try {
-          const response = await axios.put(`/api/amz-sku-cty/${id}`, {
-            country_sku: newSku
-          });
-          
-          // Update display
-          row.querySelector('.sku-display').textContent = newSku;
-          disableEditMode(row);
-          
-          showAlert('success', 'Country SKU updated successfully');
-        } catch (error) {
-          console.error('Error updating country SKU:', error);
-          showAlert('danger', 'Failed to update country SKU');
-        }
-      }
-      
-      // Delete country SKU
-      async function deleteCountrySku(id, row) {
-        if (!confirm('Are you sure you want to delete this country SKU?')) {
-          return;
-        }
-        
-        try {
-          await axios.delete(`/api/amz-sku-cty/${id}`);
-          row.remove();
-          
-          // Check if we need to show the no data row
-          const tableBody = document.querySelector('#countrySkuTable tbody');
-          const noDataRow = document.getElementById('noCountrySkusRow');
-          const hasRows = Array.from(tableBody.children).some(child => 
-            child.id !== 'noCountrySkusRow'
-          );
-          
-          noDataRow.style.display = hasRows ? 'none' : 'table-row';
-          
-          showAlert('success', 'Country SKU deleted successfully');
-        } catch (error) {
-          console.error('Error deleting country SKU:', error);
-          showAlert('danger', 'Failed to delete country SKU');
-        }
-      }
-      
-      // Initialize country SKU management
-      document.addEventListener('DOMContentLoaded', () => {
-        initCountrySkuModal();
-      });
+    }
+    
+    // Initialize country SKU management
+    document.addEventListener('DOMContentLoaded', () => {
+      initCountrySkuModal();
+    });
