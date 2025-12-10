@@ -465,7 +465,8 @@ block content
           );
           
           // 税费和佣金（外币）
-          const vatCost = salePrice * vatRate;
+          // 英国VAT税费为销售价格的1/6
+          const vatCost = countryCode === 'UK' ? salePrice / 6 : salePrice * vatRate;
           const amzCommission = salePrice * commissionRate;
           
           // 转换为人民币
@@ -496,7 +497,9 @@ block content
           }
           $('#shippingCostResult').text(shippingDetail);
           
-          $('#vatCostResult').text(`${(vatRate*100).toFixed(2)}% = ${vatCost.toFixed(2)} ${currencyCode}`);
+          // 英国VAT费用显示为销售价格的1/6，其他国家显示百分比
+          const vatDisplay = countryCode === 'UK' ? `销售价格的1/6 = ${vatCost.toFixed(2)} ${currencyCode}` : `${(vatRate*100).toFixed(2)}% = ${vatCost.toFixed(2)} ${currencyCode}`;
+          $('#vatCostResult').text(vatDisplay);
           $('#amzCommissionResult').text(`${(commissionRate*100).toFixed(2)}% = ${amzCommission.toFixed(2)} ${currencyCode}`);
           $('#localShippingResult').text(`${localShipping.toFixed(2)} ${currencyCode}`);
           $('#unitConversionResult').text(`尺寸: ${lengthUnit}→cm, 重量: ${weightUnit}→kg`);

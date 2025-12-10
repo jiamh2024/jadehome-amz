@@ -286,6 +286,42 @@ function determineCategory(length, width, height, weightKg, billedWeightKg) {
 * 根据分类计算运费
 */
 function calculateFeeByCategory(category, weightGrams, weightKg, salePrice) {
+  // 检查是否为低价商品（售价小于10英镑）
+  const isLowPrice = salePrice !== undefined && salePrice < 10;
+  
+  // 如果是低价商品，应用低价商品费用规则
+  if (isLowPrice) {
+    switch (category) {
+        case 'light_envelope':
+            if (weightGrams <= 20) return 1.46;
+            if (weightGrams <= 40) return 1.50;
+            if (weightGrams <= 60) return 1.52;
+            if (weightGrams <= 80) return 1.67;
+            if (weightGrams <= 100) return 1.70;
+            break;
+            
+        case 'standard_envelope':
+            if (weightGrams <= 210) return 1.73;
+            if (weightGrams <= 460) return 1.87;
+            break;
+            
+        case 'large_envelope':
+            if (weightGrams <= 960) return 2.42;
+            break;
+            
+        case 'extra_large_envelope':
+            if (weightGrams <= 960) return 2.65;
+            break;
+            
+        case 'small_parcel':
+            if (weightGrams <= 150) return 2.67;
+            if (weightGrams <= 400) return 2.70;
+            break;
+    }
+    // 如果低价商品不在上述特殊规则中，继续使用原规则
+  }
+  
+  // 原有的费用计算规则
   switch (category) {
       case 'light_envelope':
           if (weightGrams <= 20) return 1.83;
@@ -683,3 +719,4 @@ console.log(calculateSaudiShippingFee(33, 23, 5, 0.8, 30));    // 大号信封�
 console.log(calculateSaudiShippingFee(45, 34, 26, 5, 20));     // 标准包裹，5千克，单价低于25里亚尔
 console.log(calculateSaudiShippingFee(60, 40, 30, 10, 30));    // 大件，10千克，单价高于25里亚尔
 console.log(calculateSaudiShippingFee(60, 40, 30, 35, 20));    // 大件，35千克（超过30千克），单价低于25里亚尔
+
