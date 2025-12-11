@@ -104,6 +104,7 @@ block content
                         span.input-group-text 高
                         input#height.form-control(type="number" step="0.01" min="0")
                         span.input-group-text.unit-display cm
+                .row.mb-3
                   .col-md-6
                     label.form-label 产品重量
                     .dimension-inputs
@@ -111,6 +112,11 @@ block content
                         span.input-group-text 重量
                         input#weight.form-control(type="number" step="0.001" min="0")
                         span.input-group-text.unit-label kg
+                  .col-md-6
+                    label.form-label 产品属性
+                    .form-check
+                      input#hasBattery.form-check-input(type="checkbox")
+                      label.form-check-label(for="hasBattery") 产品带电池
 
                 .row.mb-3
                   .col-md-6
@@ -380,7 +386,7 @@ block content
         });
 
         // 计算AMZ当地运费 (考虑单位)
-        function calculateLocalShipping(length, width, height, weight, countryCode, lengthUnit, weightUnit, salePrice) {
+        function calculateLocalShipping(length, width, height, weight, countryCode, lengthUnit, weightUnit, salePrice, hasBattery) {
           // 转换为标准单位(cm和kg)进行计算 - 兼容中英文单位
           const lengthCm = (lengthUnit === '英寸' || lengthUnit === 'inch') ? length * 2.54 : length;
           const widthCm = (lengthUnit === '英寸' || lengthUnit === 'inch') ? width * 2.54 : width;
@@ -394,15 +400,15 @@ block content
           
           // 示例计算规则
           if (countryCode === 'US') {
-            return calculateUSShippingFee(length, width, height, weight, salePrice);
+            return calculateUSShippingFee(length, width, height, weight, salePrice, hasBattery);
           } else if (countryCode === 'UK') {
-            return calculateUKShippingFee(length, width, height, weight, salePrice);
+            return calculateUKShippingFee(length, width, height, weight, salePrice, hasBattery);
           } else if (countryCode === 'CA') {
-            return calculateCanadaShippingFee(length, width, height, weight, salePrice);
+            return calculateCanadaShippingFee(length, width, height, weight, salePrice, hasBattery);
           } else if (countryCode === 'SA') {
-            return calculateSaudiShippingFee(length, width, height, weight, salePrice);
+            return calculateSaudiShippingFee(length, width, height, weight, salePrice, hasBattery);
           } else if (countryCode === 'AE') {
-            return calculateUAEShippingFee(length, width, height, weight, salePrice);
+            return calculateUAEShippingFee(length, width, height, weight, salePrice, hasBattery);
           } else {
             return 0.0;
           }
@@ -421,6 +427,7 @@ block content
           const weight = parseFloat($('#weight').val()) || 0;
           const salePrice = parseFloat($('#salePrice').val()) || 0;
           const exchangeRate = parseFloat($('#exchangeRate').val()) || 1;
+          const hasBattery = $('#hasBattery').is(':checked');
            
           const countryOption = $('#countrySelect option:selected');
           const vatRate = parseFloat(countryOption.data('vat')) / 100 || 0;
@@ -461,7 +468,7 @@ block content
           // 当地运费（自动计算）
           const localShipping = calculateLocalShipping(
             length, width, height, weight, 
-            countryCode, lengthUnit, weightUnit, salePrice
+            countryCode, lengthUnit, weightUnit, salePrice, hasBattery
           );
           
           // 税费和佣金（外币）
