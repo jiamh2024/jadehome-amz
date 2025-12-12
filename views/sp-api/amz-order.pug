@@ -298,7 +298,7 @@ block content
                 const data = await response.json();
                 
                 if (response.ok) {
-                  container.innerHTML = renderOrderItems(data.payload.payload.OrderItems || []);
+                  container.innerHTML = renderOrderItems(data.payload.payload.OrderItems || [], market);
                 } else {
                   throw new Error(data.message || '获取商品详情失败');
                 }
@@ -365,10 +365,40 @@ block content
       }
       
       // 渲染订单行项目详情
-      function renderOrderItems(items) {
+      function renderOrderItems(items, market) {
         if (items.length === 0) {
           return '<div class="alert alert-info">没有找到商品详情</div>';
         }
+        
+        // 根据市场获取正确的图片API参数
+        const getImageUrl = (asin, marketId) => {
+          // 不同市场的参数配置
+          const marketConfigs = {
+            US: { domain: 'ws-na.amazon-adsystem.com', marketplace: 'US' },
+            CA: { domain: 'ws-na.amazon-adsystem.com', marketplace: 'CA' },
+            UK: { domain: 'ws-eu.amazon-adsystem.com', marketplace: 'GB' }, // 英国使用GB作为marketplace参数
+            AE: { domain: 'ws-eu.amazon-adsystem.com', marketplace: 'AE' },
+            SA: { domain: 'ws-eu.amazon-adsystem.com', marketplace: 'SA' }
+          };
+          
+          const config = marketConfigs[marketId] || marketConfigs.US;
+          return `https://${config.domain}/widgets/q?_encoding=UTF8&MarketPlace=${config.marketplace}&ASIN=${asin}&ServiceVersion=20070822&ID=AsinImage&WS=1&Format=SL160`;
+        };
+        
+        // 根据市场获取产品页面链接
+        const getProductUrl = (asin, marketId) => {
+          // 不同市场的亚马逊域名
+          const marketDomains = {
+            US: 'www.amazon.com',
+            CA: 'www.amazon.ca',
+            UK: 'www.amazon.co.uk',
+            AE: 'www.amazon.ae',
+            SA: 'www.amazon.sa'
+          };
+          
+          const domain = marketDomains[marketId] || marketDomains.US;
+          return `https://${domain}/dp/${asin}`;
+        };
         
         return `
           <div class="table-responsive">
@@ -390,14 +420,14 @@ block content
                   <tr>
                     <td>
                       <div class="d-flex">
-                        ${item.ASIN ? `<img src="https://ws-na.amazon-adsystem.com/widgets/q?_encoding=UTF8&MarketPlace=US&ASIN=${item.ASIN}&ServiceVersion=20070822&ID=AsinImage&WS=1&Format=SL250" class="product-image">` : ''}
+                        ${item.ASIN ? `<img src="${getImageUrl(item.ASIN, market.id)}" class="product-image" onError="this.style.display='none'">` : ''}
                         <div>
                           ${item.Title || '未知商品'}<br>
                           <small class="text-muted">SKU: ${item.SellerSKU || 'N/A'}</small>
                         </div>
                       </div>
                     </td>
-                    <td>${item.ASIN || 'N/A'}</td>
+                    <td>${item.ASIN ? `<a href="${getProductUrl(item.ASIN, market.id)}" target="_blank" rel="noopener noreferrer">${item.ASIN}</a>` : 'N/A'}</td>
                     <td>${item.QuantityOrdered}</td>
                     <td>${item.ItemPrice?.Amount || 'N/A'} ${item.ItemPrice?.CurrencyCode || ''}</td>
                     <td>${item.ItemPrice?.Amount ? (item.ItemPrice.Amount * item.QuantityOrdered).toFixed(2) : 'N/A'} ${item.ItemPrice?.CurrencyCode || ''}</td>
