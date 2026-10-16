@@ -1,0 +1,185 @@
+//- views/bom-edit.pug
+extends layout
+
+block append head
+    title 编辑BOM
+    style.
+      .form-container {
+        max-width: 800px;
+        margin: 2rem auto;
+        padding: 2rem;
+        box-shadow: 0 0 15px rgba(0,0,0,0.1);
+        border-radius: 8px;
+      }
+      .form-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.5rem;
+      }
+      .form-full {
+        grid-column: 1 / -1;
+      }
+      .btn-group {
+        display: flex;
+        gap: 1rem;
+        justify-content: flex-end;
+      }
+
+block content
+    .form-container
+      .d-flex.justify-content-between.align-items-center.mb-4
+        h3 编辑BOM
+        a.btn.btn-outline-secondary(href="/bom/bom-ls") 返回列表
+
+      form#bomForm
+        input#bom_id(type="hidden")
+        .form-grid
+          //- 产品SKU选择
+          .mb-3
+            label(for="sku_id" class="form-label") 产品SKU <span class="text-danger">*</span>
+            select#sku_id(class="form-select" required)
+              option(value="") 请选择产品SKU
+
+          //- 零部件选择
+          .mb-3
+            label(for="component_id" class="form-label") 零部件 <span class="text-danger">*</span>
+            select#component_id(class="form-select" required)
+              option(value="") 请选择零部件
+
+          //- 数量
+          .mb-3
+            label(for="quantity" class="form-label") 数量 <span class="text-danger">*</span>
+            input#quantity(type="number" step="0.01" class="form-control" required min="0.01")
+
+          //- 单位
+          .mb-3
+            label(for="unit" class="form-label") 单位 <span class="text-danger">*</span>
+            select#unit(class="form-select" required)
+              option(value="pcs") 个 (pcs)
+              option(value="kg") 千克 (kg)
+              option(value="g") 克 (g)
+              option(value="m") 米 (m)
+              option(value="cm") 厘米 (cm)
+              option(value="l") 升 (l)
+              option(value="ml") 毫升 (ml)
+              option(value="set") 套 (set)
+
+          //- 使用说明
+          .mb-3.form-full
+            label(for="usage_note" class="form-label") 使用说明
+            textarea#usage_note(class="form-control" rows="3")
+            .form-text 说明该零部件在产品中的使用方式或注意事项
+
+        .btn-group.mt-4
+          button(type="button" class="btn btn-secondary" onclick="window.location.href='/bom/bom-ls'" )
+            | 取消
+          button(type="submit" class="btn btn-primary" )
+            | 保存修改
+
+    script(src="https://fastly.jsdelivr.net/npm/axios/dist/axios.min.js")
+    script.
+      // 获取URL参数中的BOM ID
+      function getBomId() {
+        const urlParams = new URLSearchParams(window.location.search);
+        return urlParams.get('id');
+      }
+
+      // 加载产品SKU列表
+      async function loadProductSkus() {
+        try {
+          const response = await axios.get('/api/sku');
+          const select = document.getElementById('sku_id');
+          
+          // 清空现有选项
+          select.innerHTML = '<option value="">请选择产品SKU</option>';
+          
+          // 添加产品SKU选项
+          response.data.data.skus.forEach(sku => {
+            select.innerHTML += `<option value="${sku.sku_id}">${sku.sku_code} - ${sku.product_name}</option>`;
+          });
+        } catch (error) {
+          console.error('加载产品SKU失败:', error);
+          alert('加载产品SKU失败');
+        }
+      }
+
+      // 加载零部件列表
+      async function loadComponents() {
+        try {
+          const response = await axios.get('/api/component');
+          const select = document.getElementById('component_id');
+          
+          // 清空现有选项
+          select.innerHTML = '<option value="">请选择零部件</option>';
+          
+          // 添加零部件选项
+          response.data.data.components.forEach(component => {
+            select.innerHTML += `<option value="${component.component_id}">${component.sku_code} - ${component.core_specs}</option>`;
+          });
+        } catch (error) {
+          console.error('加载零部件失败:', error);
+          alert('加载零部件失败');
+        }
+      }
+
+      // 加载现有BOM数据
+      async function loadBomData() {
+        const bomId = getBomId();
+        if (!bomId) {
+          alert('未找到BOM ID');
+          window.location.href = '/bom/bom-ls';
+          return;
+        }
+
+        try {
+          const response = await axios.get(`/api/bom/${bomId}`);
+          const bom = response.data.data.bom;
+          
+          // 填充表单数据
+          document.getElementById('bom_id').value = bom.bom_id;
+          document.getElementById('sku_id').value = bom.sku_id;
+          document.getElementById('component_id').value = bom.component_id;
+          document.getElementById('quantity').value = bom.quantity;
+          document.getElementById('unit').value = bom.unit;
+          document.getElementById('usage_note').value = bom.usage_note || '';
+        } catch (error) {
+          console.error('加载BOM数据失败:', error);
+          alert('加载BOM数据失败');
+          window.location.href = '/bom/bom-ls';
+        }
+      }
+
+      // 表单提交处理
+      document.getElementById('bomForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const formData = {
+          bom_id: parseInt(document.getElementById('bom_id').value),
+          sku_id: parseInt(document.getElementById('sku_id').value),
+          component_id: parseInt(document.getElementById('component_id').value),
+          quantity: parseFloat(document.getElementById('quantity').value),
+          unit: document.getElementById('unit').value,
+          usage_note: document.getElementById('usage_note').value
+        };
+
+        try {
+          const response = await axios.put(`/api/bom/${formData.bom_id}`, formData);
+          alert('BOM修改成功');
+          window.location.href = '/bom/bom-ls';
+        } catch (error) {
+          const message = error.response?.data?.message || '修改失败，请检查输入';
+          alert('错误: ' + message);
+          console.error(error);
+        }
+      });
+
+      // 页面加载时初始化数据
+      document.addEventListener('DOMContentLoaded', () => {
+        loadProductSkus();
+        loadComponents();
+        // 延迟加载BOM数据，确保产品和零部件列表已加载完成
+        setTimeout(loadBomData, 500);
+      });
+
+
+

@@ -1,0 +1,211 @@
+//- views/bom-ls.pug
+extends layout
+
+block append head
+    title BOM管理
+    style.
+      .table-container {
+        max-width: 1400px;
+        margin: 2rem auto;
+        padding: 2rem;
+        box-shadow: 0 0 15px rgba(0,0,0,0.1);
+        border-radius: 8px;
+      }
+      .search-box {
+        max-width: 400px;
+      }
+      .specs-preview {
+        max-width: 200px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+block content
+    .table-container
+      .d-flex.justify-content-between.mb-4.align-items-center
+        h3 BOM管理
+        a.btn.btn-primary(href="/bom/bom-add") 
+          i.bi.bi-plus-circle
+          |  添加BOM
+
+      .d-flex.justify-content-between.mb-4
+        .search-box
+          .input-group
+            input#searchInput.form-control(
+              type="text" 
+              placeholder="搜索BOM..."
+              onkeyup="searchBoms()"
+            )
+            button.btn.btn-outline-secondary(type="button")
+              i.bi.bi-search
+
+        .d-flex.gap-2
+          select#pageLimit.form-select(onchange="loadData()" style="width: 100px")
+            option(value="10") 每页10条
+            option(value="20") 每页20条
+            option(value="50") 每页50条
+
+      table.table.table-hover.table-striped
+        thead
+          tr
+            th(scope="col") 产品SKU
+            th(scope="col") 产品名称
+            th(scope="col") 零部件SKU
+            th(scope="col") 零部件规格
+            th(scope="col") 数量
+            th(scope="col") 单位
+            th(scope="col") 使用说明
+            th(scope="col") 操作
+        tbody#dataBody
+          tr
+            td(colspan="8" class="text-center") 加载数据中...
+        
+      nav(aria-label="Page navigation")
+        ul.pagination.justify-content-center#pagination
+
+    script(src="https://fastly.jsdelivr.net/npm/axios/dist/axios.min.js")
+    script.
+      let currentPage = 1;
+      let currentSearch = '';
+      let pageSize = 10;
+
+      // 加载初始数据
+      document.addEventListener('DOMContentLoaded', () => {
+        loadData();
+      });
+
+      async function loadData(page = 1) {
+        currentPage = page;
+        pageSize = parseInt(document.getElementById('pageLimit').value);
+        
+        try {
+          const response = await axios.get('/api/bom', {
+            params: {
+              page: currentPage,
+              limit: pageSize
+            }
+          });
+
+          renderTable(response.data.data.boms);
+          renderPagination(response.data.data.pagination);
+        } catch (error) {
+          showError('加载数据失败');
+          console.error(error);
+        }
+      }
+
+      function renderTable(boms) {
+        const tbody = document.getElementById('dataBody');
+        
+        if (boms.length === 0) {
+          tbody.innerHTML = `
+            <tr>
+              <td colspan="8" class="text-center">没有找到BOM数据</td>
+            </tr>
+          `;
+          return;
+        }
+
+        tbody.innerHTML = boms.map(bom => `
+          <tr>
+            <td>${bom.product_sku}</td>
+            <td>${bom.product_name}</td>
+            <td>${bom.component_sku}</td>
+            <td class="specs-preview" title="${bom.core_specs}">${bom.core_specs}</td>
+            <td>${bom.quantity}</td>
+            <td>${bom.unit}</td>
+            <td>${bom.usage_note || '-'}</td>
+            <td>
+              <button class="btn btn-sm btn-primary" onclick="editBom(${bom.bom_id})">
+                <i class="bi bi-pencil"></i>
+              </button>
+              <button class="btn btn-sm btn-danger" onclick="deleteBom(${bom.bom_id})">
+                <i class="bi bi-trash"></i>
+              </button>
+            </td>
+          </tr>
+        `).join('');
+      }
+
+      function renderPagination(pagination) {
+        const paginationEl = document.getElementById('pagination');
+        const { page, totalPages } = pagination;
+
+        let html = '';
+
+        // Previous button
+        html += `
+          <li class="page-item ${page === 1 ? 'disabled' : ''}">
+            <button class="page-link" onclick="loadData(${page - 1})">上一页</button>
+          </li>
+        `;
+
+        // Page numbers
+        for (let i = 1; i <= totalPages; i++) {
+          html += `
+            <li class="page-item ${i === page ? 'active' : ''}">
+              <button class="page-link" onclick="loadData(${i})")>${i}</button>
+            </li>
+          `;
+        }
+
+        // Next button
+        html += `
+          <li class="page-item ${page === totalPages ? 'disabled' : ''}">
+            <button class="page-link" onclick="loadData(${page + 1})">下一页</button>
+          </li>
+        `;
+
+        paginationEl.innerHTML = html;
+      }
+
+      function searchBoms() {
+        // 简单的前端搜索实现
+        const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+        const rows = document.querySelectorAll('#dataBody tr');
+
+        rows.forEach(row => {
+          const cells = row.querySelectorAll('td');
+          let found = false;
+
+          cells.forEach((cell, index) => {
+            // 跳过操作列
+            if (index < 7 && cell.textContent.toLowerCase().includes(searchTerm)) {
+              found = true;
+            }
+          });
+
+          row.style.display = found ? '' : 'none';
+        });
+      }
+
+      function editBom(bomId) {
+        // 跳转到编辑页面
+        window.location.href = `/bom/bom-edit?id=${bomId}`;
+      }
+
+      async function deleteBom(bomId) {
+        if (!confirm('确定要删除这条BOM记录吗？')) {
+          return;
+        }
+
+        try {
+          await axios.delete(`/api/bom/${bomId}`);
+          loadData();
+          showSuccess('删除成功');
+        } catch (error) {
+          showError('删除失败');
+          console.error(error);
+        }
+      }
+
+      function showError(message) {
+        alert('错误: ' + message);
+      }
+
+      function showSuccess(message) {
+        alert('成功: ' + message);
+      }
+
+

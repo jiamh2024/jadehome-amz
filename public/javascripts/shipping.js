@@ -94,14 +94,16 @@ function calculateDimensionalWeight(length, width, height) {
   }
   
   /**
-   * 计算美国物流配送费
-   * @param {number} length - 长度（英寸）
-   * @param {number} width - 宽度（英寸）
-   * @param {number} height - 高度（英寸）
-   * @param {number} weight - 重量（磅）
-   * @returns {number} 配送费（美元）
-   */
-  function calculateUSShippingFee(length, width, height, weight, salePrice) {
+ * 计算美国物流配送费
+ * @param {number} length - 长度（英寸）
+ * @param {number} width - 宽度（英寸）
+ * @param {number} height - 高度（英寸）
+ * @param {number} weight - 重量（磅）
+ * @param {number} salePrice - 销售价格
+ * @param {boolean} hasBattery - 是否带电池（可选）
+ * @returns {number} 配送费（美元）
+ */
+function calculateUSShippingFee(length, width, height, weight, salePrice, hasBattery) {
     // 1. 计算体积重量（磅）
     const dimensionalWeight = calculateDimensionalWeight(length, width, height);
     const billableWeight = Math.max(weight, dimensionalWeight);
@@ -128,9 +130,11 @@ function calculateDimensionalWeight(length, width, height) {
  * @param {number} width 宽度（厘米）
  * @param {number} height 高度（厘米）
  * @param {number} weight 实际重量（千克）
+ * @param {number} salePrice 销售价格
+ * @param {boolean} hasBattery 是否带电池（可选）
  * @returns {number} 配送费用（加元）
  */
-function calculateCanadaShippingFee(length, width, height, weight, salePrice) {
+function calculateCanadaShippingFee(length, width, height, weight, salePrice, hasBattery) {
   // 1. 计算体积重量（克）
   const dimensionalWeight = (length * width * height) / 5000;
   const weightGrams = weight * 1000; // 转换为克
@@ -224,9 +228,11 @@ function calculateCanadaOversizeFee(weight, salePrice) {
  * @param {number} width 宽度（厘米）
  * @param {number} height 高度（厘米）
  * @param {number} weight 实际重量（千克）
+ * @param {number} salePrice 销售价格
+ * @param {boolean} hasBattery 是否带电池
  * @returns {number} 配送费用（英镑）
  */
-function calculateUKShippingFee(length, width, height, weight, salePrice) {
+function calculateUKShippingFee(length, width, height, weight, salePrice, hasBattery) {
   // 1. 计算体积重量（千克）
   const dimensionalWeightKg = (length * width * height) / 5000;
   const weightGrams = weight * 1000; // 转换为克
@@ -240,7 +246,14 @@ function calculateUKShippingFee(length, width, height, weight, salePrice) {
   const category = determineCategory(length, width, height, weight, billedWeightKg);
   
   // 3. 根据分类计算运费
-  return calculateFeeByCategory(category, billedWeightGrams, billedWeightKg, salePrice);
+  let shippingFee = calculateFeeByCategory(category, billedWeightGrams, billedWeightKg, salePrice);
+  
+  // 4. 如果带电池，增加额外费用（英国增加0.1英镑）
+  if (hasBattery) {
+    shippingFee += 0.1;
+  }
+  
+  return shippingFee;
 }
 
 /**
@@ -286,6 +299,42 @@ function determineCategory(length, width, height, weightKg, billedWeightKg) {
 * 根据分类计算运费
 */
 function calculateFeeByCategory(category, weightGrams, weightKg, salePrice) {
+  // 检查是否为低价商品（售价小于10英镑）
+  const isLowPrice = salePrice !== undefined && salePrice < 10;
+  
+  // 如果是低价商品，应用低价商品费用规则
+  if (isLowPrice) {
+    switch (category) {
+        case 'light_envelope':
+            if (weightGrams <= 20) return 1.46;
+            if (weightGrams <= 40) return 1.50;
+            if (weightGrams <= 60) return 1.52;
+            if (weightGrams <= 80) return 1.67;
+            if (weightGrams <= 100) return 1.70;
+            break;
+            
+        case 'standard_envelope':
+            if (weightGrams <= 210) return 1.73;
+            if (weightGrams <= 460) return 1.87;
+            break;
+            
+        case 'large_envelope':
+            if (weightGrams <= 960) return 2.42;
+            break;
+            
+        case 'extra_large_envelope':
+            if (weightGrams <= 960) return 2.65;
+            break;
+            
+        case 'small_parcel':
+            if (weightGrams <= 150) return 2.67;
+            if (weightGrams <= 400) return 2.70;
+            break;
+    }
+    // 如果低价商品不在上述特殊规则中，继续使用原规则
+  }
+  
+  // 原有的费用计算规则
   switch (category) {
       case 'light_envelope':
           if (weightGrams <= 20) return 1.83;
@@ -368,9 +417,10 @@ console.log(calculateCanadaShippingFee(70, 50, 50, 10));    // Oversize
  * @param {number} height 高度（厘米）
  * @param {number} weight 实际重量（千克）
  * @param {number} productPrice 商品销售单价（阿联酋迪拉姆）
+ * @param {boolean} hasBattery 是否带电池（可选）
  * @returns {number} 配送费用（阿联酋迪拉姆）
  */
-function calculateUAEShippingFee(length, width, height, weight, productPrice) {
+function calculateUAEShippingFee(length, width, height, weight, productPrice, hasBattery) {
   // 1. 计算体积重量（千克）
   const dimensionalWeight = (length * width * height) / 5000;
   const billableWeight = Math.max(weight, dimensionalWeight);
@@ -525,9 +575,10 @@ function calculateUAEOversizeFee(weight, productPrice) {
  * @param {number} height 高度（厘米）
  * @param {number} weight 实际重量（千克）
  * @param {number} productPrice 商品销售单价（沙特里亚尔）
+ * @param {boolean} hasBattery 是否带电池（可选）
  * @returns {number} 配送费用（沙特里亚尔）
  */
-function calculateSaudiShippingFee(length, width, height, weight, productPrice) {
+function calculateSaudiShippingFee(length, width, height, weight, productPrice, hasBattery) {
   // 1. 计算体积重量（千克）
   const dimensionalWeight = (length * width * height) / 5000;
   const billableWeight = Math.max(weight, dimensionalWeight);
@@ -683,3 +734,4 @@ console.log(calculateSaudiShippingFee(33, 23, 5, 0.8, 30));    // 大号信封�
 console.log(calculateSaudiShippingFee(45, 34, 26, 5, 20));     // 标准包裹，5千克，单价低于25里亚尔
 console.log(calculateSaudiShippingFee(60, 40, 30, 10, 30));    // 大件，10千克，单价高于25里亚尔
 console.log(calculateSaudiShippingFee(60, 40, 30, 35, 20));    // 大件，35千克（超过30千克），单价低于25里亚尔
+
