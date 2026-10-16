@@ -1,3 +1,4 @@
+.env
 ecosystem.config.js
 db/mysslkey
 public/uploads

@@ -13,8 +13,27 @@ console.log('Env: ' + process.env);
 console.log('Private key: ' + process.env.PRIVATE_KEY);
 console.log('Certificate: ' + process.env.CERTIFICATE);
 
-var privateKey  = fs.readFileSync(process.env.PRIVATE_KEY);
-var certificate = fs.readFileSync(process.env.CERTIFICATE);
+var privateKeyPath = process.env.PRIVATE_KEY;
+var certificatePath = process.env.CERTIFICATE;
+
+if (!privateKeyPath || !certificatePath) {
+  console.error('Missing TLS settings: PRIVATE_KEY and CERTIFICATE must be defined in .env');
+  process.exit(1);
+}
+
+var privateKey;
+var certificate;
+
+try {
+  privateKey = fs.readFileSync(privateKeyPath);
+  certificate = fs.readFileSync(certificatePath);
+  console.log('TLS certificate files loaded successfully.');
+} catch (err) {
+  console.error('Failed to read TLS certificate files. Please check PRIVATE_KEY and CERTIFICATE in .env.');
+  console.error(err.message);
+  process.exit(1);
+}
+
 var credentials = {key: privateKey, cert: certificate};
 /**
  * Get port from environment and store in Express.
@@ -28,10 +47,11 @@ app.set('httpsport', httpsport);
  */
 var httpsserver = https.createServer(credentials, app);
 
+console.log('Starting HTTPS server on port ' + httpsport + '...');
+
 /**
  * Listen on provided port, on all network interfaces.
  */
-
 httpsserver.listen(httpsport);
 httpsserver.on('error', onError);
 httpsserver.on('listening', onListening);
@@ -65,9 +85,9 @@ function onError(error) {
     throw error;
   }
 
-  var bind = typeof port === 'string'
-    ? 'Pipe ' + port
-    : 'Port ' + port;
+  var bind = typeof httpsport === 'string'
+    ? 'Pipe ' + httpsport
+    : 'Port ' + httpsport;
 
   // handle specific listen errors with friendly messages
   switch (error.code) {
@@ -93,5 +113,6 @@ function onListening() {
   var bind = typeof addr === 'string'
     ? 'pipe ' + addr
     : 'port ' + addr.port;
+  console.log('HTTPS server listening on ' + bind);
   debug('Listening on ' + bind);
 }
