@@ -55,7 +55,7 @@ async function getAccessToken(marketplaceId) {
 
     return accessToken[marketplaceId].token;
   } catch (error) {
-    console.error('获取Access Token失败:', error.response?.data || error.message);
+    console.error('001获取Access Token失败:', error.response?.data || error.message);
     throw new Error('Failed to get access token');
   }
 }

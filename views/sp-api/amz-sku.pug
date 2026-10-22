@@ -37,6 +37,17 @@ block append head
     .sku-body {
       padding: 15px;
     }
+    .product-info {
+      width: 100%;
+      min-width: 0;
+    }
+    .product-name {
+      display: block;
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
     .product-image {
       max-width: 100px;
       max-height: 100px;
@@ -190,8 +201,14 @@ block content
             
             // 按市场分组
             const skusByMarket = groupSkusByMarket(skus);
+            const hasMarketSkus = Object.values(skusByMarket).some(marketSkus => marketSkus.length > 0);
+            if (!hasMarketSkus) {
+              noDataAlert.style.display = 'block';
+              return;
+            }
             
             // 渲染SKU数据
+            let renderedMarket = false;
             for (const marketId in skusByMarket) {
               // 如果选择了特定市场，则只显示该市场的数据
               if (market !== 'all' && marketId !== market) {
@@ -199,7 +216,15 @@ block content
               }
               
               const marketSkus = skusByMarket[marketId];
+              if (marketSkus.length === 0) {
+                continue;
+              }
+
+              renderedMarket = true;
               marketContent.appendChild(createMarketSection(marketId, marketSkus));
+            }
+            if (!renderedMarket) {
+              noDataAlert.style.display = 'block';
             }
           })
           .catch(error => {
@@ -216,14 +241,17 @@ block content
       // 按市场分组SKU
       function groupSkusByMarket(skus) {
         const groups = {};
-        // 确保所有市场都有对应的分组，即使没有SKU
+        // 保留市场顺序，但只收录已设置该市场亚马逊SKU的产品
         ['US', 'CA', 'UK', 'AE', 'SA'].forEach(market => {
           groups[market] = [];
         });
         
         skus.forEach(sku => {
-          // 为每个SKU创建5个市场版本
           ['US', 'CA', 'UK', 'AE', 'SA'].forEach(market => {
+            if (!sku[`amz_sku_${market}`]) {
+              return;
+            }
+
             const skuCopy = {...sku};
             skuCopy.marketplaceId = market;
             groups[market].push(skuCopy);
@@ -319,6 +347,12 @@ block content
         // 先计算发布状态的HTML内容
         const listingStatusHTML = getListingStatusHTML(sku, market);
         const listingPriceHTML = getListingPriceHTML(sku, market);
+        const inventory = sku[`inventory_${market}`]?.inventoryDetails;
+        const inventoryHTML = sku[`inventory_error_${market}`]
+          ? '<span class="text-danger">获取失败</span>'
+          : inventory
+            ? `可售 ${Number(inventory.fulfillableQuantity) || 0} | 预留 ${Number(inventory.reservedQuantity?.totalReservedQuantity) || 0} | 入库 ${(Number(inventory.inboundWorkingQuantity) || 0) + (Number(inventory.inboundShippedQuantity) || 0) + (Number(inventory.inboundReceivingQuantity) || 0)}`
+            : '<span class="text-muted">暂无库存数据</span>';
         
         // SKU卡片内容
         skuCard.innerHTML = `
@@ -329,8 +363,8 @@ block content
             </div>
             <div class="card-body sku-body">
               <div class="d-flex mb-3">
-                <div>
-                  <h6 class="card-subtitle mb-1 text-truncate" title="${escapeHtml(sku.product_name || '无产品名称')}">${escapeHtml(sku.product_name || '无产品名称')}</h6>
+                <div class="product-info">
+                  <h6 class="card-subtitle mb-1 product-name" title="${escapeHtml(sku.product_name || '无产品名称')}">${escapeHtml(sku.product_name || '无产品名称')}</h6>
                   <p class="text-sm text-muted mb-0">ASIN: ${escapeHtml(sku.asin || '无')}</p>
                   <p class="text-sm text-muted mb-0">采购成本: ¥${sku.purchase_cost || '0'} | 重量: ${sku.weight || '0'} kg</p>
                   <p class="text-sm text-muted mb-0">产品尺寸: ${sku.length || '0'} × ${sku.width || '0'} × ${sku.height || '0'} cm</p>
@@ -345,6 +379,10 @@ block content
                 <div class="stat-item d-flex justify-content-between">
                   <span class="text-sm font-weight-bold">销售价格:</span>
                   <span class="font-weight-bold">${listingPriceHTML}</span>
+                </div>
+                <div class="stat-item d-flex justify-content-between">
+                  <span class="text-sm text-muted">FBA库存:</span>
+                  <span class="font-weight-medium">${inventoryHTML}</span>
                 </div>
               
               <!-- 操作按钮 -->
@@ -705,11 +743,14 @@ block content
               prices = response.data || [];
             }
             
-            // 旧的实现：使用预定义的市场列表
+            // 按API返回的已配置市场渲染价格行
             const marketList = ['US', 'CA', 'UK', 'AE', 'SA'];
+            const configuredMarkets = Array.isArray(prices)
+              ? prices.map(price => price.marketplaceId)
+              : Object.keys(prices);
             let tableHtml = '';
             
-            marketList.forEach(marketId => {
+            marketList.filter(marketId => configuredMarkets.includes(marketId)).forEach(marketId => {
               // 查找该市场的价格
               let priceData = {};
               if (Array.isArray(prices)) {
@@ -750,7 +791,7 @@ block content
               `;
             });
             
-            priceTableBody.innerHTML = tableHtml;
+            priceTableBody.innerHTML = tableHtml || '<tr><td colspan="4" class="text-center">该产品未设置任何市场的亚马逊SKU</td></tr>';
             
             // 如果指定了市场，自动聚焦到该市场的输入框
             if (market) {

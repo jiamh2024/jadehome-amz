@@ -66,8 +66,9 @@ async function getSkuDataFromDatabase(skuCode = null) {
       // 为每个市场添加对应的国家SKU
       Object.keys(MARKETPLACES).forEach(marketplaceId => {
         const key = `${sku.sku_id}_${marketplaceId}`;
-        // 如果有对应的国家SKU，使用它；否则使用默认的产品SKU值
-        enhancedSku[`amz_sku_${marketplaceId}`] = countrySkuMap.get(key) || sku.sku_code;
+        const countrySku = countrySkuMap.get(key);
+        enhancedSku[`amz_sku_${marketplaceId}`] =
+          typeof countrySku === 'string' && countrySku.trim() ? countrySku : null;
       });
       
       return enhancedSku;
@@ -198,6 +199,57 @@ async function batchCheckListingStatuses(marketplaceId, skuCodes) {
     console.error('批量检查发布状态失败:', error);
     throw new Error('Failed to batch check listing statuses');
   }
+}
+
+/**
+ * 获取指定市场的FBA库存汇总
+ */
+async function getMarketplaceInventory(marketplaceId, sellerSkus) {
+  const inventoryBySellerSku = {};
+  const uniqueSellerSkus = [...new Set(sellerSkus.filter(Boolean))];
+  const batchSize = 50;
+
+  if (uniqueSellerSkus.length === 0) {
+    return inventoryBySellerSku;
+  }
+
+  const accessToken = await getAccessToken(marketplaceId);
+  const { endpoint, id: amazonMarketplaceId } = MARKETPLACES[marketplaceId];
+  const url = `${endpoint}/fba/inventory/v1/summaries`;
+
+  for (let index = 0; index < uniqueSellerSkus.length; index += batchSize) {
+    const batch = uniqueSellerSkus.slice(index, index + batchSize);
+    let nextToken;
+
+    do {
+      const params = nextToken
+        ? { nextToken }
+        : {
+            granularityType: 'Marketplace',
+            granularityId: amazonMarketplaceId,
+            marketplaceIds: amazonMarketplaceId,
+            details: true,
+            sellerSkus: batch.join(',')
+          };
+      const response = await axios.get(url, {
+        headers: {
+          'x-amz-access-token': accessToken,
+          'User-Agent': process.env.SP_API_USER_AGENT || 'My-App/1.0'
+        },
+        params
+      });
+
+      const summaries = response.data?.payload?.inventorySummaries || [];
+      summaries.forEach(summary => {
+        if (summary.sellerSku) {
+          inventoryBySellerSku[summary.sellerSku] = summary;
+        }
+      });
+      nextToken = response.data?.pagination?.nextToken;
+    } while (nextToken);
+  }
+
+  return inventoryBySellerSku;
 }
 
 /**
@@ -503,44 +555,57 @@ router.get('/api/database-skus', async (req, res) => {
     // 并行处理每个市场的发布状态检查
     const marketplaceIds = Object.keys(MARKETPLACES);
     
-    // 为每个市场创建一个Promise来检查所有SKU的发布状态
+    // 为每个市场并行获取发布状态和FBA库存
     const marketStatusPromises = marketplaceIds.map(async (marketplaceId) => {
-      try {
-        // 为当前市场获取所有SKU的对应国家SKU值
-        const marketSkuMap = {};
-        const marketSkus = [];
-        
-        skus.forEach(sku => {
-          // 使用该市场对应的国家特定SKU值
-          const marketSku = sku[`amz_sku_${marketplaceId}`] || sku.sku_code;
-          marketSkuMap[marketSku] = sku.sku_code; // 存储原始SKU编码映射
+      const marketSkuMap = new Map();
+      const marketSkus = [];
+
+      skus.forEach(sku => {
+        const marketSku = sku[`amz_sku_${marketplaceId}`];
+        if (!marketSku) {
+          return;
+        }
+
+        if (!marketSkuMap.has(marketSku)) {
+          marketSkuMap.set(marketSku, []);
           marketSkus.push(marketSku);
-        });
-        
-        // 批量检查当前市场的所有SKU发布状态
-        const statusMap = await batchCheckListingStatuses(marketplaceId, marketSkus);
-        
-        // 转换回原始SKU编码作为键
-        const transformedStatusMap = {};
-        for (const [marketSku, status] of Object.entries(statusMap)) {
-          const originalSku = marketSkuMap[marketSku];
-          if (originalSku) {
-            transformedStatusMap[originalSku] = status;
+        }
+        marketSkuMap.get(marketSku).push(sku.sku_code);
+      });
+
+      const [statusResult, inventoryResult] = await Promise.allSettled([
+        marketSkus.length ? batchCheckListingStatuses(marketplaceId, marketSkus) : Promise.resolve({}),
+        marketSkus.length ? getMarketplaceInventory(marketplaceId, marketSkus) : Promise.resolve({})
+      ]);
+
+      const statusMap = {};
+      if (statusResult.status === 'fulfilled') {
+        for (const [marketSku, status] of Object.entries(statusResult.value)) {
+          for (const originalSku of marketSkuMap.get(marketSku) || []) {
+            statusMap[originalSku] = status;
           }
         }
-        
-        return {
-          marketplaceId,
-          statusMap: transformedStatusMap
-        };
-      } catch (error) {
-        console.error(`获取市场${marketplaceId}的发布状态失败:`, error);
-        // 如果获取状态失败，返回空的状态映射
-        return {
-          marketplaceId,
-          statusMap: {}
-        };
+      } else {
+        console.error(`获取市场${marketplaceId}的发布状态失败:`, statusResult.reason);
       }
+
+      const inventoryMap = {};
+      if (inventoryResult.status === 'fulfilled') {
+        for (const [marketSku, inventory] of Object.entries(inventoryResult.value)) {
+          for (const originalSku of marketSkuMap.get(marketSku) || []) {
+            inventoryMap[originalSku] = inventory;
+          }
+        }
+      } else {
+        console.error(`获取市场${marketplaceId}的FBA库存失败:`, inventoryResult.reason);
+      }
+
+      return {
+        marketplaceId,
+        statusMap,
+        inventoryMap,
+        inventoryError: inventoryResult.status === 'rejected'
+      };
     });
     
     // 等待所有市场的发布状态检查完成
@@ -554,9 +619,12 @@ router.get('/api/database-skus', async (req, res) => {
       marketplaceIds.forEach(marketplaceId => {
         const marketResult = marketStatusResults.find(result => result.marketplaceId === marketplaceId);
         const skuStatus = marketResult?.statusMap[sku.sku_code] || { isListed: false };
+        const inventory = marketResult?.inventoryMap[sku.sku_code];
         
         // 以marketplaceId为键存储发布状态
         skuWithStatus[`is_listed_${marketplaceId}`] = skuStatus.isListed;
+        skuWithStatus[`inventory_${marketplaceId}`] = inventory || null;
+        skuWithStatus[`inventory_error_${marketplaceId}`] = marketResult?.inventoryError || false;
         
         // 存储价格信息
         if (skuStatus.price) {
@@ -734,8 +802,14 @@ router.get('/api/price', async (req, res) => {
       });
     }
     
-    // 使用该市场对应的国家特定SKU值
-    const amzSku = skuData[`amz_sku_${marketplaceId}`] || skuCode;
+    const amzSku = skuData[`amz_sku_${marketplaceId}`];
+    if (!amzSku) {
+      return res.status(400).json({
+        success: false,
+        message: `SKU ${skuCode} 未设置${MARKETPLACES[marketplaceId].name}亚马逊SKU`
+      });
+    }
+
     console.log(`使用${marketplaceId}市场的特定SKU: ${amzSku}获取价格`);
     
     // 使用Listings Items API获取价格信息
@@ -802,11 +876,12 @@ router.get('/api/prices/all', async (req, res) => {
     }
     
     // 并行获取所有市场的价格
-    const marketplaceIds = Object.keys(MARKETPLACES);
+    const marketplaceIds = Object.keys(MARKETPLACES).filter(marketplaceId =>
+      skuData[`amz_sku_${marketplaceId}`]
+    );
     const pricePromises = marketplaceIds.map(async (marketplaceId) => {
       try {
-        // 使用该市场对应的国家特定SKU值
-        const amzSku = skuData[`amz_sku_${marketplaceId}`] || skuCode;
+        const amzSku = skuData[`amz_sku_${marketplaceId}`];
         console.log(`使用${marketplaceId}市场的特定SKU: ${amzSku}获取价格`);
         
         // 使用Listings Items API获取价格信息
@@ -846,7 +921,7 @@ router.get('/api/prices/all', async (req, res) => {
             currencyCode: MARKETPLACES[marketplaceId].currency
           },
           error: error.message,
-          usedSku: skuData[`amz_sku_${marketplaceId}`] || skuCode
+          usedSku: skuData[`amz_sku_${marketplaceId}`]
         };
       }
     });

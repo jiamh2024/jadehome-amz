@@ -2,3 +2,4 @@
 ecosystem.config.js
 db/mysslkey
 public/uploads
+node_modules

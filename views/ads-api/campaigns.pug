@@ -1,6 +1,71 @@
 extends layout.pug
 
 block content
+  style.
+    .campaign-modal[hidden] {
+      display: none;
+    }
+    .campaign-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 1050;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+      background: rgba(0, 0, 0, 0.5);
+    }
+    .campaign-modal-dialog {
+      width: min(100%, 760px);
+      max-height: 90vh;
+      overflow: auto;
+      background: #fff;
+      border-radius: 0.5rem;
+      box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.25);
+    }
+    .campaign-modal-header,
+    .campaign-modal-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1rem;
+      border-bottom: 1px solid #dee2e6;
+    }
+    .campaign-modal-footer {
+      justify-content: flex-end;
+      border-top: 1px solid #dee2e6;
+      border-bottom: 0;
+    }
+    .campaign-modal-header h2 {
+      margin: 0;
+      font-size: 1.25rem;
+    }
+    .campaign-modal-body {
+      padding: 1rem;
+    }
+    .campaign-modal-body table {
+      width: 100%;
+      margin: 0;
+      border-collapse: collapse;
+    }
+    .campaign-modal-body th,
+    .campaign-modal-body td {
+      padding: 0.5rem;
+      border-bottom: 1px solid #dee2e6;
+      text-align: left;
+      vertical-align: top;
+    }
+    .campaign-modal-body td {
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+    .campaign-modal-close {
+      border: 0;
+      background: transparent;
+      font-size: 1.5rem;
+      line-height: 1;
+      cursor: pointer;
+    }
   .campaign-container
     .filters
       h2 筛选条件
@@ -27,6 +92,13 @@ block content
           .form-group
             label(for="nameFilter") 名称包含:
             input#nameFilter(type="text", name="name", placeholder="输入活动名称")
+
+          .form-group
+            label(for="feePeriodFilter") 费用计算周期:
+            select#feePeriodFilter(name="feePeriod")
+              option(value="day" selected) 按日
+              option(value="week") 按周
+              option(value="month") 按月
         
         .form-actions
           button.btn-secondary#resetBtn(type="button") 重置
@@ -55,7 +127,7 @@ block content
               th 国家
               th 状态
               th 预算
-              th 开始日期
+              th 费用计算周期
               th 
                 span.tooltip 预算使用率
                   span.tooltiptext 已花费/总预算
@@ -70,6 +142,27 @@ block content
         .pagination-buttons
           button#prevPage(disabled) 上一页
           button#nextPage(disabled) 下一页
+
+  #campaignDetailsModal.campaign-modal(hidden role="dialog" aria-modal="true" aria-labelledby="campaignDetailsTitle")
+    .campaign-modal-dialog
+      .campaign-modal-header
+        h2#campaignDetailsTitle 广告活动详情
+        button.campaign-modal-close#closeCampaignDetails(type="button" aria-label="关闭") &times;
+      .campaign-modal-body
+        section.campaign-orders
+          h3 归因销售额汇总
+          p
+            | 查询周期：
+            span#campaignSalesPeriod
+          p.text-muted 销售额按广告归因口径统计，归因窗口为 14 天。
+          p#campaignSalesStatus(role="status" aria-live="polite") 尚未查询
+          button#continueCampaignSales.btn-secondary(type="button" hidden) 继续查询
+        hr
+        h3 活动信息
+        table
+          tbody#campaignDetailsBody
+      .campaign-modal-footer
+        button.btn-secondary#closeCampaignDetailsFooter(type="button") 关闭
 
 block scripts
   script(src="https://cdn.jsdelivr.net/npm/lodash@4.17.21/lodash.min.js")

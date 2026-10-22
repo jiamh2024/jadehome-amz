@@ -13,8 +13,8 @@ html(lang="zh-CN")
       nav
         a(href="/") 首页
         a(href="#", class="active") 广告活动
-        - const needreturl = 'https://www.amazon.com/ap/oa?client_id=' + process.env.ADS_API_CLIENT_ID + '&scope=advertising::campaign_management&response_type=code&redirect_uri=' + process.env.ADS_SIGNIN_URL;
-        a(href=needreturl) 获取认证
+        span#adsAuthStatus(role="status" aria-live="polite") 正在检查广告认证...
+        a#adsAuthLink(href="/signin/start" hidden) 重新认证
     
     main
       block content
